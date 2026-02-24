@@ -115,7 +115,22 @@ export const useTradeMasterStore = defineStore('trademaster', () => {
     try {
       const response = await portfolioApi.getSummary()
       if (response.data && response.data.status === 'ok') {
-        portfolio.value = response.data.portfolio || getMockPortfolio()
+        const data = response.data.portfolio
+        // 轉換字段名（後端 snake_case → 前端 camelCase）
+        portfolio.value = {
+          totalAssets: data.total_assets || 0,
+          todayPnL: data.today_pnl || 0,
+          positions: (data.positions || []).map(p => ({
+            symbol: p.symbol,
+            shares: p.shares,
+            avgPrice: p.avg_price,
+            currentPrice: p.current_price,
+            marketValue: p.market_value,
+            pnl: p.pnl,
+            pnlAmount: p.pnl_amount,
+            allocation: p.allocation
+          }))
+        }
       }
     } catch (error) {
       console.error('Failed to fetch portfolio:', error)
