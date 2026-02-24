@@ -1,0 +1,46 @@
+{
+  "compilerOptions": {
+    /* Basic Options */
+    "target": "ESNext",
+    "module": "ESNext",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    
+    /* Allow JavaScript files to be compiled */
+    "allowJs": true,
+    
+    /* Check JS files - disable for gradual migration */
+    "checkJs": false,
+    
+    /* Do not require implicit any - allow for JS compatibility */
+    "noImplicitAny": false,
+    
+    /* Module Resolution */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    
+    /* JSX */
+    "jsx": "preserve",
+    
+    /* Strictness - disable for gradual migration */
+    "strict": false,
+    "noImplicitThis": false,
+    "strictNullChecks": false,
+    
+    /* Additional Options */
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    
+    /* Paths */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "src/**/*.js"],
+  "exclude": ["node_modules", "dist"]
+}
