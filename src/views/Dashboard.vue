@@ -184,8 +184,8 @@ const topStrategies = computed(() => {
 
 // 投資組合
 const portfolio = computed(() => store.portfolio.totalAssets > 0 ? store.portfolio : {
-  totalAssets: 156420,
-  todayPnL: 3240,
+  totalAssets: 0,
+  todayPnL: 0,
   positions: []
 })
 
