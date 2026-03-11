@@ -154,25 +154,71 @@ const pageSize = ref(50)
 // 計算分頁數據
 const totalPages = computed(() => Math.ceil(klineData.value.length / pageSize.value))
 const paginatedKline = computed(() => {
-  const sorted = [...klineData.value].sort((a, b) => 
-    new Date(b.timestamp) - new Date(a.timestamp)
-  )
+  const sorted = [...klineData.value].sort((a, b) => {
+    // 处理台北时间
+    let ta = a.timestamp, tb = b.timestamp
+    if (typeof a.timestamp === 'string' && !a.timestamp.includes('Z') && !a.timestamp.endsWith('+08:00')) {
+      ta = a.timestamp + '+08:00'
+    }
+    if (typeof b.timestamp === 'string' && !b.timestamp.includes('Z') && !b.timestamp.endsWith('+08:00')) {
+      tb = b.timestamp + '+08:00'
+    }
+    return new Date(tb) - new Date(ta)
+  })
   const start = (currentPage.value - 1) * pageSize.value
   return sorted.slice(start, start + pageSize.value)
 })
 
 // 格式化完整時間（24小時制）
+// 後端 K 線時間是美國東部時間（America/New_York），前端需正確轉成台北時間。
+// 不能手動固定 +13 / +12，否則夏令時間切換時會出錯。
 const formatFullTime = (timestamp) => {
-  const date = new Date(timestamp)
-  return date.toLocaleString('zh-TW', { 
-    year: 'numeric',
-    month: '2-digit', 
-    day: '2-digit',
-    hour: '2-digit', 
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false  // 24小時制
-  })
+  if (!timestamp) return '-'
+
+  // 解析 "2026-02-26 10:50:00" 這種無時區字串，視為 America/New_York 本地時間
+  if (typeof timestamp === 'string' && timestamp.includes('-') && timestamp.includes(':')) {
+    try {
+      const [datePart, timePart] = timestamp.split(' ')
+      const [y, m, d] = datePart.split('-').map(Number)
+      const [H, M, S] = timePart.split(':').map(Number)
+
+      // 先粗略建立 UTC 基準，再用 IANA timezone 動態求出當下紐約 offset（自動處理 DST）
+      const approxUtc = new Date(Date.UTC(y, m - 1, d, H, M, S || 0))
+      const nyParts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23'
+      }).formatToParts(approxUtc)
+
+      const map = Object.fromEntries(
+        nyParts.filter(p => p.type !== 'literal').map(p => [p.type, Number(p.value)])
+      )
+
+      const asNyUtc = Date.UTC(map.year, map.month - 1, map.day, map.hour, map.minute, map.second)
+      const offsetMs = asNyUtc - approxUtc.getTime()
+      const actualUtc = new Date(Date.UTC(y, m - 1, d, H, M, S || 0) - offsetMs)
+
+      return actualUtc.toLocaleString('zh-TW', {
+        timeZone: 'Asia/Taipei',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      })
+    } catch (e) {
+      console.error('Time parse error:', e)
+    }
+  }
+
+  return '-'
 }
 
 // 格式化成交量
@@ -283,7 +329,12 @@ const fetchKline = async (symbol) => {
     const data = await response.json()
     
     dataSource.value = data.source === 'cache' ? '📁 本地快取' : '☁️ 網絡獲取'
-    lastUpdate.value = data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : '-'
+    // 如果日期字符串没有时区信息，假设是台北时间 (UTC+8)
+    let d = data.timestamp
+    if (d && typeof d === 'string' && !d.includes('Z') && !d.endsWith('+08:00')) {
+      d = d + '+08:00'
+    }
+    lastUpdate.value = d ? new Date(d).toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei' }) : '-'
     
     if (data.kline && data.kline.length > 0) {
       klineData.value = data.kline
