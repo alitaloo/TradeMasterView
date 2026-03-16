@@ -126,6 +126,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useToast } from '@/composables/useToast'
 import FreshnessIndicator from '../components/FreshnessIndicator.js'
+import { formatTaipei } from '../utils/datetime.js'
 
 const API_URL = import.meta.env.VITE_API_URL
 const { error } = useToast()
@@ -184,8 +185,7 @@ const goToPage = (page) => {
 }
 
 const formatTime = (timestamp) => {
-  if (!timestamp) return '-'
-  return new Date(timestamp).toLocaleString('zh-TW')
+  return formatTaipei(timestamp)
 }
 
 onMounted(() => {

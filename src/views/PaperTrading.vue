@@ -92,6 +92,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { paperApi } from '@/api'
+import { formatTaipei } from '../utils/datetime.js'
 
 const isEnabled = ref(false)
 const summary = ref({})
@@ -103,13 +104,14 @@ const debugInfo = ref('')
 const loadData = async () => {
   loading.value = true
   try {
-    // 獲取狀態
-    console.log('Loading paper status...')
-    const status = await paperApi.getStatus()
-    console.log('Status:', status)
-    console.log('status.enabled:', status.enabled)
-    console.log('status.enabled type:', typeof status.enabled)
-    // 確保是 boolean
+    // 並行獲取所有數據（避免串行等待）
+    const [status, posRes, orderRes] = await Promise.all([
+      paperApi.getStatus(),
+      paperApi.getPositions(),
+      paperApi.getOrders(20)
+    ])
+
+    // 處理狀態
     isEnabled.value = status.enabled === true || status.enabled === 'true'
     debugInfo.value = `enabled=${status.enabled}, type=${typeof status.enabled}`
     summary.value = {
@@ -120,8 +122,7 @@ const loadData = async () => {
       unrealized_pnl_pct: 0
     }
     
-    // 獲取持倉
-    const posRes = await paperApi.getPositions()
+    // 處理持倉
     positions.value = posRes.positions || []
     
     // 計算未實現損益百分比
@@ -129,8 +130,7 @@ const loadData = async () => {
       summary.value.unrealized_pnl_pct = ((summary.value.unrealized_pnl / summary.value.total) * 100).toFixed(2)
     }
     
-    // 獲取訂單
-    const orderRes = await paperApi.getOrders(20)
+    // 處理訂單
     orders.value = orderRes.orders || []
     
   } catch (error) {
@@ -148,8 +148,7 @@ const formatNumber = (num) => {
 }
 
 const formatDate = (dateStr) => {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleString('zh-TW')
+  return formatTaipei(dateStr)
 }
 
 onMounted(() => {

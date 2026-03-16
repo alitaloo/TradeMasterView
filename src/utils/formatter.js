@@ -36,10 +36,16 @@ export function formatPercent(value, decimals = 2) {
 }
 
 /**
- * 格式化日期時間
+ * 格式化日期時間 (台北時區)
  */
 export function formatDateTime(date, formatStr = 'yyyy-MM-dd HH:mm') {
-  return format(new Date(date), formatStr)
+  // 如果日期字符串没有时区信息，假设是台北时间 (UTC+8)
+  let d = date
+  if (typeof date === 'string' && !date.includes('Z') && !date.endsWith('+08:00')) {
+    // 假设输入是台北时间，转换为 Date 对象
+    d = new Date(date + '+08:00')
+  }
+  return format(d, formatStr)
 }
 
 /**

@@ -14,14 +14,17 @@ export const useTradeMasterStore = defineStore('trademaster', () => {
   const signals = ref([])
   const signalsLoading = ref(false)
   const signalsTimestamp = ref(null)
+  const signalsError = ref(null)
   
   // 回測結果
   const backtests = ref([])
   const backtestsLoading = ref(false)
+  const backtestsError = ref(null)
   
   // 策略
   const strategies = ref([])
   const strategiesLoading = ref(false)
+  const strategiesError = ref(null)
   
   // 投資組合
   const portfolio = ref({
@@ -30,6 +33,7 @@ export const useTradeMasterStore = defineStore('trademaster', () => {
     positions: []
   })
   const portfolioLoading = ref(false)
+  const portfolioError = ref(null)
   
   // 市場狀態
   const marketStatus = ref({
@@ -40,11 +44,11 @@ export const useTradeMasterStore = defineStore('trademaster', () => {
   // ===== Getters =====
   
   const longSignals = computed(() => 
-    signals.value.filter(s => s.type === 'LONG')
+    signals.value.filter(s => (s.signal_type || s.type) === 'LONG' || (s.signal_type || s.type) === 'BUY')
   )
   
   const shortSignals = computed(() => 
-    signals.value.filter(s => s.type === 'SHORT')
+    signals.value.filter(s => (s.signal_type || s.type) === 'SHORT' || (s.signal_type || s.type) === 'SELL')
   )
   
   const enabledStrategies = computed(() => 
@@ -60,18 +64,20 @@ export const useTradeMasterStore = defineStore('trademaster', () => {
   // ===== Actions =====
   
   // 載入信號
+  // NOTE: axios interceptor already unwraps response.data, so `response` IS the JSON body
   async function fetchSignals(params = {}) {
     signalsLoading.value = true
+    signalsError.value = null
     try {
       const response = await signalsApi.getAll(params)
-      if (response.data && response.data.status === 'ok') {
-        signals.value = response.data.signals || []
-        signalsTimestamp.value = response.data.data_timestamp || null
+      if (response && response.status === 'ok') {
+        signals.value = response.signals || []
+        signalsTimestamp.value = response.data_timestamp || null
       }
     } catch (error) {
       console.error('Failed to fetch signals:', error)
-      // 使用模擬數據作為後備
-      signals.value = getMockSignals()
+      signalsError.value = error?.message || 'Failed to fetch signals from API'
+      signals.value = []
     } finally {
       signalsLoading.value = false
     }
@@ -80,14 +86,16 @@ export const useTradeMasterStore = defineStore('trademaster', () => {
   // 載入回測結果
   async function fetchBacktests(params = {}) {
     backtestsLoading.value = true
+    backtestsError.value = null
     try {
       const response = await backtestsApi.getAll(params)
-      if (response.data && response.data.status === 'ok') {
-        backtests.value = response.data.backtests || []
+      if (response && response.status === 'ok') {
+        backtests.value = response.backtests || []
       }
     } catch (error) {
       console.error('Failed to fetch backtests:', error)
-      backtests.value = getMockBacktests()
+      backtestsError.value = error?.message || 'Failed to fetch backtests from API'
+      backtests.value = []
     } finally {
       backtestsLoading.value = false
     }
@@ -96,14 +104,16 @@ export const useTradeMasterStore = defineStore('trademaster', () => {
   // 載入策略
   async function fetchStrategies() {
     strategiesLoading.value = true
+    strategiesError.value = null
     try {
       const response = await strategiesApi.getAll()
-      if (response.data && response.data.status === 'ok') {
-        strategies.value = response.data.strategies || []
+      if (response && response.status === 'ok') {
+        strategies.value = response.strategies || []
       }
     } catch (error) {
       console.error('Failed to fetch strategies:', error)
-      strategies.value = getMockStrategies()
+      strategiesError.value = error?.message || 'Failed to fetch strategies from API'
+      strategies.value = []
     } finally {
       strategiesLoading.value = false
     }
@@ -112,17 +122,18 @@ export const useTradeMasterStore = defineStore('trademaster', () => {
   // 載入投資組合
   async function fetchPortfolio() {
     portfolioLoading.value = true
+    portfolioError.value = null
     try {
       const response = await portfolioApi.getSummary()
-      if (response.data && response.data.status === 'ok') {
-        const data = response.data.portfolio
+      if (response && response.status === 'ok') {
+        const data = response.portfolio
         // 轉換字段名（後端 snake_case → 前端 camelCase）
         portfolio.value = {
           totalAssets: data.total_assets || 0,
           todayPnL: data.today_pnl || 0,
           positions: (data.positions || []).map(p => ({
             symbol: p.symbol,
-            shares: p.shares,
+            shares: p.shares || p.quantity,
             avgPrice: p.avg_price,
             currentPrice: p.current_price,
             marketValue: p.market_value,
@@ -134,7 +145,8 @@ export const useTradeMasterStore = defineStore('trademaster', () => {
       }
     } catch (error) {
       console.error('Failed to fetch portfolio:', error)
-      portfolio.value = getMockPortfolio()
+      portfolioError.value = error?.message || 'Failed to fetch portfolio from API'
+      portfolio.value = { totalAssets: 0, todayPnL: 0, positions: [] }
     } finally {
       portfolioLoading.value = false
     }
@@ -146,8 +158,8 @@ export const useTradeMasterStore = defineStore('trademaster', () => {
     if (strategy) {
       try {
         const response = await strategiesApi.toggle(id, !strategy.enabled)
-        if (response.data && response.data.status === 'ok') {
-          strategy.enabled = response.data.enabled
+        if (response && response.status === 'ok') {
+          strategy.enabled = response.enabled
         }
       } catch (error) {
         console.error('Failed to toggle strategy:', error)
@@ -218,12 +230,16 @@ export const useTradeMasterStore = defineStore('trademaster', () => {
     signals,
     signalsLoading,
     signalsTimestamp,
+    signalsError,
     backtests,
     backtestsLoading,
+    backtestsError,
     strategies,
     strategiesLoading,
+    strategiesError,
     portfolio,
     portfolioLoading,
+    portfolioError,
     marketStatus,
     
     // Getters

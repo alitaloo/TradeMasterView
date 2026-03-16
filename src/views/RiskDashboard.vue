@@ -167,7 +167,12 @@ const getRiskLabel = (pos) => {
 
 const formatTime = (timestamp) => {
   if (!timestamp) return '-'
-  return new Date(timestamp).toLocaleString('zh-TW')
+  // 如果日期字符串没有时区信息，假设是台北时间 (UTC+8)
+  let d = timestamp
+  if (typeof timestamp === 'string' && !timestamp.includes('Z') && !timestamp.endsWith('+08:00')) {
+    d = timestamp + '+08:00'
+  }
+  return new Date(d).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
 }
 
 onMounted(() => {

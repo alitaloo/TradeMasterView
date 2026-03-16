@@ -47,7 +47,7 @@ export const signalsApi = {
   getLatest: (limit = 10) => api.get('/signals/latest', { params: { limit } }),
   
   // 獲取特定股票的信號
-  getBySymbol: (symbol) => api.get(`/signals/${symbol}`),
+  getBySymbol: (symbol) => api.get(`/signals/by-symbol/${symbol}`),
   
   // 獲取信號摘要
   getSummary: () => api.get('/signals/summary')
@@ -175,6 +175,36 @@ export const paperApi = {
   
   // 手動推送到 Successor Bot
   pushSummary: () => api.post('/paper/push')
+}
+
+/**
+ * 新聞同步狀態 API
+ */
+export const newsApi = {
+  // 獲取新聞同步狀態 (freshness / observability)
+  getSyncStatus: () => api.get('/news/sync-status')
+}
+
+/**
+ * 系統狀態聚合 API
+ */
+export const systemApi = {
+  // 獲取聚合系統狀態
+  getStatus: () => api.get('/system/status')
+}
+
+/**
+ * 手動操作 API
+ */
+export const manualActionsApi = {
+  // 列出所有可用 action 及狀態
+  list: () => api.get('/manual-actions'),
+  // 觸發指定 action
+  trigger: (action) => api.post(`/manual-actions/${action}/trigger`),
+  // 查詢指定 action 狀態
+  getStatus: (action) => api.get(`/manual-actions/${action}/status`),
+  // 查詢指定 action 最近執行記錄
+  getHistory: (action, limit = 5) => api.get(`/manual-actions/${action}/history`, { params: { limit } }),
 }
 
 export default api

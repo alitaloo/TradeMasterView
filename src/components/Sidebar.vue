@@ -27,6 +27,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { getUSMarketStatus } from '../utils/datetime.js'
 
 const menuItems = [
   { path: '/', label: '儀表板', icon: '📊' },
@@ -42,25 +43,8 @@ const menuItems = [
   { path: '/paper-trading', label: '模擬交易', icon: '📈' }
 ]
 
-const marketStatus = computed(() => {
-  const hour = new Date().getHours()
-  const minute = new Date().getMinutes()
-  const time = hour * 60 + minute
-  
-  // 美股交易時間 (9:30 - 16:00 ET)
-  // 台北時間 +12 小時
-  const etTime = (time + 12 * 60) % 1440
-  const marketOpen = 9 * 60 + 30
-  const marketClose = 16 * 60
-  
-  if (etTime >= marketOpen && etTime <= marketClose) {
-    return { text: '📈 開盤', class: 'open' }
-  } else if (etTime < marketOpen) {
-    return { text: '🌙 盤前', class: 'pre' }
-  } else {
-    return { text: '🌙 收盤', class: 'closed' }
-  }
-})
+// 使用統一的 datetime 工具，正確處理 DST 與週末
+const marketStatus = computed(() => getUSMarketStatus())
 </script>
 
 <style scoped>

@@ -6,6 +6,7 @@
         <h1 class="welcome-title">歡迎回來，Z 👋</h1>
         <p class="welcome-subtitle">今天是 {{ currentDate }}，市場 {{ marketStatus }}</p>
         <FreshnessIndicator :timestamp="store.signalsTimestamp" class="mt-2" />
+        <FreshnessIndicator :timestamp="newsSyncTimestamp" label="新聞同步於" class="mt-1" />
       </div>
       <div class="quick-actions">
         <button class="action-btn" @click="$router.push('/signals')">
@@ -119,6 +120,12 @@
             </div>
           </div>
         </div>
+
+        <!-- 系統狀態面板 -->
+        <SystemStatusPanel />
+
+        <!-- 手動控制面板 -->
+        <ManualActionsPanel />
       </div>
     </div>
   </div>
@@ -127,10 +134,17 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useTradeMasterStore } from '../stores/trademaster'
+import { newsApi } from '../api/index.js'
 import SignalCard from '../components/SignalCard.vue'
 import FreshnessIndicator from '../components/FreshnessIndicator.js'
+import SystemStatusPanel from '../components/SystemStatusPanel.vue'
+import ManualActionsPanel from '../components/ManualActionsPanel.vue'
+import { getUSMarketStatus } from '../utils/datetime.js'
 
 const store = useTradeMasterStore()
+
+// 新聞同步狀態
+const newsSyncTimestamp = ref(null)
 
 const currentDate = computed(() => {
   return new Date().toLocaleDateString('zh-TW', { 
@@ -141,8 +155,8 @@ const currentDate = computed(() => {
 })
 
 const marketStatus = computed(() => {
-  const hour = new Date().getHours()
-  return hour >= 9 && hour < 16 ? '開盤中' : '已收盤'
+  const status = getUSMarketStatus()
+  return status.text
 })
 
 // 格式化數字
@@ -151,14 +165,14 @@ const formatNumber = (num, decimals = 2) => {
   return num.toFixed(decimals)
 }
 
-// 統計卡片數據
+// 統計卡片數據 — 不再硬編碼 fallback 數字
 const stats = computed(() => ({
-  longSignals: store.longSignals.length || 6,
-  shortSignals: store.shortSignals.length || 5,
-  todayReturn: store.portfolio.todayPnL 
+  longSignals: store.longSignals.length,
+  shortSignals: store.shortSignals.length,
+  todayReturn: store.portfolio.todayPnL && store.portfolio.totalAssets
     ? ((store.portfolio.todayPnL / (store.portfolio.totalAssets - store.portfolio.todayPnL)) * 100).toFixed(2)
-    : 2.34,
-  pendingTasks: 3
+    : '0.00',
+  pendingTasks: store.signals.filter(s => (s.status || '').toUpperCase() === 'PENDING').length
 }))
 
 // 最新信號
@@ -167,30 +181,32 @@ const latestSignals = computed(() => store.signals.slice(0, 4))
 // 策略表現
 const topStrategies = computed(() => {
   if (store.backtests.length > 0) {
-    return store.backtests.slice(0, 4).map(b => ({
-      name: b.strategy,
-      symbol: b.symbol,
-      return: b.return || 0,
-      sharpe: b.sharpe || 0
-    }))
+    return [...store.backtests]
+      .sort((a, b) => (b.sharpe || 0) - (a.sharpe || 0))
+      .slice(0, 4)
+      .map(b => ({
+        // strategy field may not exist; derive from file name or params
+        name: b.strategy || (b.file ? b.file.replace(/_results\.csv$/, '').replace(/_/g, ' ') : b.params || '-'),
+        symbol: b.symbol || '-',
+        return: b.return || 0,
+        sharpe: b.sharpe || 0
+      }))
   }
-  return [
-    { name: 'TSM + Stooq_V2', symbol: 'TSM', return: 31.1, sharpe: 92.4 },
-    { name: 'WDC + Stooq_V2', symbol: 'WDC', return: 109.3, sharpe: 105.5 },
-    { name: 'GOOGL + Stooq_V2', symbol: 'GOOGL', return: 22.9, sharpe: 59.8 },
-    { name: 'COIN + Stooq_V2', symbol: 'COIN', return: 21.4, sharpe: 51.4 }
-  ]
+  return []
 })
 
-// 投資組合
-const portfolio = computed(() => store.portfolio.totalAssets > 0 ? store.portfolio : {
-  totalAssets: 0,
-  todayPnL: 0,
-  positions: []
-})
+// 投資組合 — 直接使用 store 數據
+const portfolio = computed(() => store.portfolio)
 
 onMounted(async () => {
   await store.initialize()
+  // 載入新聞同步狀態
+  try {
+    const res = await newsApi.getSyncStatus()
+    newsSyncTimestamp.value = res.news_last_synced || null
+  } catch (e) {
+    console.warn('News sync status unavailable:', e)
+  }
 })
 </script>
 
