@@ -21,6 +21,11 @@
         <div class="label">持倉市值</div>
         <div class="value">${{ formatNumber(summary.market_value) }}</div>
       </div>
+      <div class="card overall-pnl" :class="{ positive: summary.overall_pnl >= 0, negative: summary.overall_pnl < 0 }">
+        <div class="label">整體盈虧</div>
+        <div class="value">{{ formatSignedNumber(summary.overall_pnl) }} ({{ summary.overall_pnl_pct }}%)</div>
+        <div class="sub-label">vs 初始 ${{ formatNumber(summary.initial_balance) }}</div>
+      </div>
       <div class="card pnl" :class="{ positive: summary.unrealized_pnl >= 0, negative: summary.unrealized_pnl < 0 }">
         <div class="label">未實現損益</div>
         <div class="value">${{ formatNumber(summary.unrealized_pnl) }} ({{ summary.unrealized_pnl_pct }}%)</div>
@@ -118,8 +123,11 @@ const loadData = async () => {
       total: status.total_assets,
       cash: status.cash,
       market_value: status.market_value,
+      initial_balance: status.initial_balance,
       unrealized_pnl: status.unrealized_pnl,
-      unrealized_pnl_pct: 0
+      unrealized_pnl_pct: 0,
+      overall_pnl: status.overall_pnl || 0,
+      overall_pnl_pct: status.overall_pnl_pct || 0
     }
     
     // 處理持倉
@@ -145,6 +153,16 @@ const loadData = async () => {
 const formatNumber = (num) => {
   if (num === null || num === undefined) return '0'
   return Number(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+const formatSignedNumber = (num) => {
+  if (num === null || num === undefined) return '$0.00'
+  const formatted = Number(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  if (num >= 0) {
+    return '+$' + formatted
+  } else {
+    return '-$' + formatted.slice(1)
+  }
 }
 
 const formatDate = (dateStr) => {
@@ -222,6 +240,20 @@ onMounted(() => {
 .card .value {
   font-size: 24px;
   font-weight: bold;
+}
+
+.card.overall-pnl.positive .value {
+  color: #44ff44;
+}
+
+.card.overall-pnl.negative .value {
+  color: #ff4444;
+}
+
+.card.overall-pnl .sub-label {
+  color: #666;
+  font-size: 12px;
+  margin-top: 4px;
 }
 
 .card.pnl.positive .value {

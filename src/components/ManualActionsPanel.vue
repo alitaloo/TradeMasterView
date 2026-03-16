@@ -24,6 +24,16 @@
             </div>
           </div>
           <div class="action-right">
+            <!-- 最近執行狀態 -->
+            <div v-if="act.last_5_runs && act.last_5_runs.length > 0" class="last-run-status" :class="'lrs-' + act.last_5_runs[0].status">
+              <template v-if="act.last_5_runs[0].status === 'running'">
+                <span class="lrs-spinner">⏳</span>
+                <span class="lrs-text">執行中</span>
+              </template>
+              <template v-else>
+                <span>最近：{{ formatTime(act.last_5_runs[0].finished_at || act.last_5_runs[0].started_at) }} - {{ act.last_5_runs[0].status }}</span>
+              </template>
+            </div>
             <button
               class="history-toggle"
               :class="{ active: expandedAction === act.action }"
@@ -43,34 +53,22 @@
           </div>
         </div>
 
-        <!-- 最近一次結果區塊 -->
-        <div v-if="act.finished_at" class="last-result" :class="'lr-' + act.status">
-          <div class="lr-header">
-            <span class="lr-badge" :class="'badge-' + act.status">
-              {{ act.status === 'success' ? '✅ 成功' : '❌ 失敗' }}
-            </span>
-            <span class="lr-time">{{ formatTime(act.finished_at) }}</span>
-          </div>
-          <div v-if="act.summary" class="lr-summary">{{ truncate(act.summary, 120) }}</div>
-          <div v-if="act.error" class="lr-error">{{ truncate(act.error, 120) }}</div>
-        </div>
-
-        <!-- 歷史記錄展開區 -->
+        <!-- 歷史記錄展開區 (使用 last_5_runs) -->
         <transition name="slide">
           <div v-if="expandedAction === act.action" class="history-section">
-            <div v-if="historyLoading" class="history-loading">載入中…</div>
-            <div v-else-if="historyRecords.length === 0" class="history-empty">尚無執行記錄</div>
+            <div v-if="!act.last_5_runs || act.last_5_runs.length === 0" class="history-empty">尚無執行記錄</div>
             <div v-else class="history-list">
               <div
-                v-for="rec in historyRecords"
-                :key="rec.id"
+                v-for="(rec, idx) in act.last_5_runs"
+                :key="idx"
                 class="history-row"
                 :class="'hr-' + rec.status"
               >
-                <span class="hr-status">{{ rec.status === 'success' ? '✅' : '❌' }}</span>
+                <span class="hr-status">{{ rec.status === 'success' ? '✅' : rec.status === 'running' ? '⏳' : '❌' }}</span>
                 <span class="hr-time">{{ formatTime(rec.finished_at || rec.started_at) }}</span>
+                <span class="hr-status-label" :class="'hsl-' + rec.status">{{ rec.status }}</span>
                 <span class="hr-detail">
-                  {{ truncate(rec.summary || rec.error || '—', 60) }}
+                  {{ rec.summary ? truncate(rec.summary, 50) : (rec.error ? truncate(rec.error, 50) : '—') }}
                 </span>
               </div>
             </div>
@@ -88,8 +86,6 @@ import { manualActionsApi } from '../api/index.js'
 const actions = ref([])
 const loadError = ref(null)
 const expandedAction = ref(null)
-const historyRecords = ref([])
-const historyLoading = ref(false)
 let pollTimer = null
 
 const iconMap = {
@@ -171,10 +167,8 @@ async function pollUntilDone(action, retries = 30) {
         act.finished_at = data.finished_at
       }
       if (data.status !== 'running') {
-        // 如果歷史面板正好展開在這個 action，重新載入
-        if (expandedAction.value === action) {
-          loadHistory(action)
-        }
+        // 重新 fetch 取得最新 last_5_runs
+        fetchActions()
         return
       }
     } catch {
@@ -183,27 +177,13 @@ async function pollUntilDone(action, retries = 30) {
   }
 }
 
-async function toggleHistory(action) {
+function toggleHistory(action) {
   if (expandedAction.value === action) {
     expandedAction.value = null
-    historyRecords.value = []
     return
   }
   expandedAction.value = action
-  await loadHistory(action)
-}
-
-async function loadHistory(action) {
-  historyLoading.value = true
-  historyRecords.value = []
-  try {
-    const data = await manualActionsApi.getHistory(action, 5)
-    historyRecords.value = data.history || []
-  } catch {
-    historyRecords.value = []
-  } finally {
-    historyLoading.value = false
-  }
+  // last_5_runs 已經在 fetchActions 中取得，不需要額外載入
 }
 
 onMounted(() => {
@@ -303,6 +283,39 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
+/* ── 最近執行狀態 ── */
+.last-run-status {
+  font-size: 0.6875rem;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.last-run-status.lrs-success {
+  color: #4ecca3;
+  background: rgba(78,204,163,0.1);
+}
+
+.last-run-status.lrs-failed {
+  color: #ff4757;
+  background: rgba(255,71,87,0.1);
+}
+
+.last-run-status.lrs-running {
+  color: #ffc107;
+  background: rgba(255,193,7,0.1);
+}
+
+.lrs-spinner {
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin-right: 4px;
+}
+
+.lrs-text {
+  font-weight: 500;
+}
+
 .history-toggle {
   width: 30px;
   height: 30px;
@@ -359,47 +372,6 @@ onUnmounted(() => {
   to { transform: rotate(360deg); }
 }
 
-/* ── 最近一次結果 ── */
-.last-result {
-  padding: 6px 12px 8px 44px;  /* 左邊對齊 action-info */
-  font-size: 0.75rem;
-  border-top: 1px solid rgba(255,255,255,0.04);
-}
-
-.lr-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 2px;
-}
-
-.lr-badge {
-  font-size: 0.6875rem;
-  font-weight: 600;
-}
-
-.badge-success { color: #4ecca3; }
-.badge-failed { color: #ff4757; }
-
-.lr-time {
-  font-size: 0.6875rem;
-  color: var(--color-text-muted);
-}
-
-.lr-summary {
-  color: var(--color-text-muted);
-  font-size: 0.6875rem;
-  line-height: 1.4;
-  word-break: break-all;
-}
-
-.lr-error {
-  color: #ff6b7a;
-  font-size: 0.6875rem;
-  line-height: 1.4;
-  word-break: break-all;
-}
-
 /* ── 歷史記錄 ── */
 .history-section {
   border-top: 1px solid rgba(255,255,255,0.06);
@@ -432,6 +404,7 @@ onUnmounted(() => {
 
 .history-row.hr-success { background: rgba(78,204,163,0.06); }
 .history-row.hr-failed  { background: rgba(255,71,87,0.06);  }
+.history-row.hr-running { background: rgba(255,193,7,0.06); }
 
 .hr-status {
   flex-shrink: 0;
@@ -442,6 +415,30 @@ onUnmounted(() => {
   flex-shrink: 0;
   color: var(--color-text-muted);
   min-width: 90px;
+}
+
+.hr-status-label {
+  flex-shrink: 0;
+  font-size: 0.5625rem;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.hr-status-label.hsl-success {
+  color: #4ecca3;
+  background: rgba(78,204,163,0.15);
+}
+
+.hr-status-label.hsl-failed {
+  color: #ff4757;
+  background: rgba(255,71,87,0.15);
+}
+
+.hr-status-label.hsl-running {
+  color: #ffc107;
+  background: rgba(255,193,7,0.15);
 }
 
 .hr-detail {

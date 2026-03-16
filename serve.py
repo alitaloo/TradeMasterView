@@ -10,6 +10,7 @@ Serves dist/ static files with:
 This eliminates hardcoded API URLs in the front-end build.
 """
 import http.server
+import socketserver
 import os
 import sys
 import json
@@ -158,7 +159,11 @@ if __name__ == "__main__":
     print(f"🌐 TradeMasterView serving on http://127.0.0.1:{PORT}")
     print(f"   dist/  → {DIST_DIR}")
     print(f"   /api/* → {API_UPSTREAM}")
-    server = http.server.HTTPServer(("127.0.0.1", PORT), SPAProxyHandler)
+    
+    class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+        daemon_threads = True
+    
+    server = ThreadingHTTPServer(("127.0.0.1", PORT), SPAProxyHandler)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
