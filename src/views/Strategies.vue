@@ -61,6 +61,13 @@
                 <span class="perf-label">夏普</span>
                 <span class="perf-value">{{ strategy.sharpe }}</span>
               </div>
+              <div v-if="strategy.win_rate" class="perf-item">
+                <span class="perf-label">勝率</span>
+                <span class="perf-value">{{ strategy.win_rate }}%</span>
+              </div>
+            </div>
+            <div class="data-source-tag" :class="strategy.data_source">
+              {{ strategy.data_source === 'real' ? '✅ 真實數據' : '⚡ 理論估算' }}
             </div>
           </div>
           
@@ -521,9 +528,26 @@ onMounted(fetchStrategies)
   color: #ffffff !important;
 }
 
+.data-source-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-top: 6px;
+  display: inline-block;
+}
+.data-source-tag.real {
+  background: rgba(63, 185, 80, 0.15);
+  color: #3fb950;
+}
+.data-source-tag.estimated {
+  background: rgba(110, 118, 129, 0.2);
+  color: #8b949e;
+}
+
 .strategy-footer {
   display: flex;
   gap: 8px;
+  margin-top: 8px;
 }
 
 .action-btn {
