@@ -316,7 +316,8 @@ const checkRisk = () => {
 
 const getRiskLevel = (pos) => {
   const value = pos.market_value || 0
-  const maxPerStock = config.value.max_position_per_stock
+  const totalAssets = paperStatus.value?.total_assets || 1000000
+  const maxPerStock = totalAssets * (riskSettings.value.max_position_per_stock_pct || 0.25)
   if (value > maxPerStock) return 'danger'
   if (value > maxPerStock * 0.8) return 'warning'
   return 'safe'
@@ -324,10 +325,13 @@ const getRiskLevel = (pos) => {
 
 const getRiskLabel = (pos) => {
   const value = pos.market_value || 0
-  const maxPerStock = config.value.max_position_per_stock
-  if (value > maxPerStock) return '⚠️ 超限'
-  if (value > maxPerStock * 0.8) return '⚡ 接近上限'
-  return '✅ 正常'
+  const totalAssets = paperStatus.value?.total_assets || 1000000
+  const maxPerStock = totalAssets * (riskSettings.value.max_position_per_stock_pct || 0.25)
+  const pct = (value / totalAssets * 100).toFixed(1)
+  const limitPct = ((riskSettings.value.max_position_per_stock_pct || 0.25) * 100).toFixed(0)
+  if (value > maxPerStock) return `⚠️ 超限 (${pct}% > ${limitPct}%)`
+  if (value > maxPerStock * 0.8) return `⚡ 接近上限 (${pct}%)`
+  return `✅ 正常 (${pct}%)`
 }
 
 const formatTime = (timestamp) => {
