@@ -279,19 +279,19 @@ onMounted(() => {
   font-weight: 500;
 }
 
-.timeframe-badge.5m {
-  background: #DBEAFE;
-  color: #1D4ED8;
+.timeframe-badge[class*="5m"] {
+  background: rgba(248,81,73,0.2);
+  color: #f85149;
 }
 
-.timeframe-badge.1h {
-  background: #FEF3C7;
-  color: #B45309;
+.timeframe-badge[class*="1h"] {
+  background: rgba(63,185,80,0.2);
+  color: #3fb950;
 }
 
-.timeframe-badge.1d {
-  background: #D1FAE5;
-  color: #047857;
+.timeframe-badge[class*="1d"] {
+  background: rgba(56,139,253,0.2);
+  color: #388bfd;
 }
 
 .indicator {

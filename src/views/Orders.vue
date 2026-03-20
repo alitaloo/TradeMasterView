@@ -7,6 +7,33 @@
       </button>
     </div>
 
+    <!-- 統計圖表區 -->
+    <div class="charts-row" v-if="orders.length > 0">
+      <!-- 狀態分佈 -->
+      <div class="chart-card">
+        <div class="chart-title">訂單狀態</div>
+        <canvas ref="statusChartRef" height="160"></canvas>
+      </div>
+      <!-- 各股票交易量 -->
+      <div class="chart-card">
+        <div class="chart-title">各股票成交筆數</div>
+        <canvas ref="symbolChartRef" height="160"></canvas>
+      </div>
+      <!-- 買賣比例 -->
+      <div class="chart-card">
+        <div class="chart-title">買入 vs 賣出</div>
+        <canvas ref="typeChartRef" height="160"></canvas>
+      </div>
+      <!-- 統計摘要 -->
+      <div class="chart-card stats-card">
+        <div class="chart-title">成交摘要</div>
+        <div class="stat-row"><span class="stat-label">總訂單</span><span class="stat-value">{{ orders.length }}</span></div>
+        <div class="stat-row"><span class="stat-label">已成交</span><span class="stat-value profit">{{ filledOrders.length }}</span></div>
+        <div class="stat-row"><span class="stat-label">已取消</span><span class="stat-value loss">{{ cancelledOrders.length }}</span></div>
+        <div class="stat-row"><span class="stat-label">成交金額</span><span class="stat-value">${{ totalFilledValue }}</span></div>
+      </div>
+    </div>
+
     <!-- 篩選 -->
     <div class="filters">
       <select v-model="filters.status" @change="fetchOrders">
@@ -113,11 +140,20 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useToast } from '@/composables/useToast'
+import { Chart, registerables } from 'chart.js'
+Chart.register(...registerables)
 
 const API_URL = import.meta.env.VITE_API_URL
 const { error } = useToast()
+
+// Chart refs
+const statusChartRef = ref(null)
+const symbolChartRef = ref(null)
+const typeChartRef = ref(null)
+let statusChart = null, symbolChart = null, typeChart = null
+
 const orders = ref([])
 const loading = ref(true)
 const filters = ref({
@@ -148,6 +184,7 @@ const fetchOrders = async () => {
     
     if (data.orders) {
       orders.value = data.orders || []
+      renderCharts()
     }
   } catch (err) {
     console.error('Fetch orders error:', err)
@@ -218,12 +255,111 @@ const closeModal = () => {
   }
 }
 
+// Computed stats
+const filledOrders = computed(() => orders.value.filter(o => o.status === 'filled'))
+const cancelledOrders = computed(() => orders.value.filter(o => o.status === 'cancelled'))
+const totalFilledValue = computed(() => {
+  const total = filledOrders.value.reduce((sum, o) => sum + (parseFloat(o.filled_price||0) * parseFloat(o.filled_quantity||0)), 0)
+  return total.toLocaleString('en-US', { maximumFractionDigits: 0 })
+})
+
+const renderCharts = async () => {
+  await nextTick()
+  const chartDefaults = {
+    plugins: { legend: { labels: { color: '#8b949e', boxWidth: 10, font: { size: 11 } } } }
+  }
+
+  // 狀態圓餅圖
+  if (statusChartRef.value) {
+    if (statusChart) statusChart.destroy()
+    const statusCount = {}
+    orders.value.forEach(o => { statusCount[o.status] = (statusCount[o.status] || 0) + 1 })
+    statusChart = new Chart(statusChartRef.value, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(statusCount),
+        datasets: [{ data: Object.values(statusCount), backgroundColor: ['#3fb950','#f85149','#d29922','#8b949e','#388bfd'], borderWidth: 0 }]
+      },
+      options: { ...chartDefaults, responsive: true, cutout: '65%' }
+    })
+  }
+
+  // 各股票柱狀圖
+  if (symbolChartRef.value) {
+    if (symbolChart) symbolChart.destroy()
+    const symCount = {}
+    orders.value.forEach(o => {
+      const sym = (o.symbol || '').replace('US.', '')
+      symCount[sym] = (symCount[sym] || 0) + 1
+    })
+    const sorted = Object.entries(symCount).sort((a,b) => b[1]-a[1]).slice(0,8)
+    symbolChart = new Chart(symbolChartRef.value, {
+      type: 'bar',
+      data: {
+        labels: sorted.map(e => e[0]),
+        datasets: [{ data: sorted.map(e => e[1]), backgroundColor: '#388bfd99', borderRadius: 3 }]
+      },
+      options: {
+        ...chartDefaults,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } },
+          y: { ticks: { color: '#8b949e', stepSize: 1 }, grid: { color: '#21262d' } }
+        }
+      }
+    })
+  }
+
+  // 買賣圓餅圖
+  if (typeChartRef.value) {
+    if (typeChart) typeChart.destroy()
+    const buyCount = orders.value.filter(o => o.order_type === 'BUY').length
+    const sellCount = orders.value.filter(o => o.order_type === 'SELL').length
+    typeChart = new Chart(typeChartRef.value, {
+      type: 'doughnut',
+      data: {
+        labels: ['買入', '賣出'],
+        datasets: [{ data: [buyCount, sellCount], backgroundColor: ['#1f6feb', '#da3633'], borderWidth: 0 }]
+      },
+      options: { ...chartDefaults, responsive: true, cutout: '65%' }
+    })
+  }
+}
+
 onMounted(() => {
   fetchOrders()
 })
 </script>
 
 <style scoped>
+.charts-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.chart-card {
+  background: var(--bg-secondary, #161b22);
+  border: 1px solid var(--border-default, #30363d);
+  border-radius: 6px;
+  padding: 14px;
+}
+.chart-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+.stats-card { display: flex; flex-direction: column; justify-content: center; }
+.stat-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #21262d; }
+.stat-row:last-child { border-bottom: none; }
+.stat-label { font-size: 12px; color: #8b949e; }
+.stat-value { font-size: 14px; font-weight: 700; font-family: 'SF Mono', monospace; color: #e6edf3; }
+.profit { color: #3fb950 !important; }
+.loss { color: #f85149 !important; }
+
 .orders-page {
   animation: fadeIn 0.3s ease;
 }

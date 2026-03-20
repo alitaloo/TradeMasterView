@@ -134,6 +134,44 @@
         </div>
       </div>
 
+      <!-- 回測概覽 -->
+      <div class="backtest-overview" v-if="backtestData.length > 0">
+        <div class="overview-stat">
+          <div class="ov-label">回測總筆數</div>
+          <div class="ov-value">{{ backtestData.length.toLocaleString() }}</div>
+        </div>
+        <div class="overview-stat">
+          <div class="ov-label">涵蓋股票</div>
+          <div class="ov-value">{{ uniqueSymbols }}</div>
+        </div>
+        <div class="overview-stat">
+          <div class="ov-label">策略指標</div>
+          <div class="ov-value">{{ uniqueIndicators }}</div>
+        </div>
+        <div class="overview-stat">
+          <div class="ov-label">正報酬策略</div>
+          <div class="ov-value profit">{{ positiveReturnCount }}</div>
+        </div>
+        <div class="overview-stat">
+          <div class="ov-label">最佳夏普</div>
+          <div class="ov-value profit">{{ bestSharpe }}</div>
+        </div>
+      </div>
+
+      <!-- Top 3 最佳策略卡片 -->
+      <div class="top3-cards" v-if="top3Strategies.length > 0">
+        <div class="top3-card" v-for="(s, i) in top3Strategies" :key="i">
+          <div class="top3-rank">#{{ i+1 }}</div>
+          <div class="top3-symbol">{{ (s.symbol||'').replace('US.','') }}</div>
+          <div class="top3-indicator">{{ s.indicator }} · {{ s.timeframe }}</div>
+          <div class="top3-metrics">
+            <span class="profit">報酬 {{ (parseFloat(s.return_pct||s.return||0)*100).toFixed(1) }}%</span>
+            <span class="muted">夏普 {{ parseFloat(s.sharpe||0).toFixed(2) }}</span>
+            <span class="muted">勝率 {{ s.win_rate ? (parseFloat(s.win_rate)*100).toFixed(0)+'%' : '-' }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- 可視化圖表 -->
       <div class="charts-container">
         <div class="chart-card">
@@ -322,6 +360,20 @@ const recentTrend = computed(() => {
   const latest = Number(recent[0]?.total_value) || 0
   const oldest = Number(recent[recent.length - 1]?.total_value) || 1
   return ((latest - oldest) / oldest) * 100
+})
+
+const uniqueSymbols = computed(() => new Set(backtestData.value.map(r => r.symbol)).size)
+const uniqueIndicators = computed(() => new Set(backtestData.value.map(r => r.indicator)).size)
+const positiveReturnCount = computed(() => backtestData.value.filter(r => parseFloat(r.return_pct||r.return||0) > 0).length)
+const bestSharpe = computed(() => {
+  if (!backtestData.value.length) return '-'
+  return Math.max(...backtestData.value.map(r => parseFloat(r.sharpe||0))).toFixed(2)
+})
+const top3Strategies = computed(() => {
+  return [...backtestData.value]
+    .filter(r => parseFloat(r.sharpe||0) > 0)
+    .sort((a,b) => parseFloat(b.sharpe||0) - parseFloat(a.sharpe||0))
+    .slice(0, 3)
 })
 
 const filteredBacktestData = computed(() => {
@@ -545,6 +597,45 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.backtest-overview {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.overview-stat {
+  background: var(--bg-secondary, #161b22);
+  border: 1px solid var(--border-default, #30363d);
+  border-radius: 6px;
+  padding: 12px 14px;
+  text-align: center;
+}
+.ov-label { font-size: 11px; color: #6e7681; margin-bottom: 6px; }
+.ov-value { font-size: 22px; font-weight: 700; font-family: 'SF Mono', monospace; color: #e6edf3; }
+
+.top3-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.top3-card {
+  background: var(--bg-secondary, #161b22);
+  border: 1px solid var(--border-default, #30363d);
+  border-radius: 6px;
+  padding: 14px 16px;
+  position: relative;
+}
+.top3-rank { position: absolute; top: 10px; right: 12px; font-size: 18px; font-weight: 800; color: #30363d; }
+.top3-symbol { font-size: 20px; font-weight: 700; color: #e6edf3; margin-bottom: 4px; }
+.top3-indicator { font-size: 12px; color: #8b949e; margin-bottom: 10px; }
+.top3-metrics { display: flex; gap: 10px; flex-wrap: wrap; }
+.top3-metrics span { font-size: 12px; }
+.muted { color: #8b949e; }
+
+.profit { color: #3fb950; }
+.loss { color: #f85149; }
+
 .backtests-page {
   animation: fadeIn 0.3s ease;
 }
