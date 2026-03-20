@@ -114,7 +114,7 @@ const riskLogs = ref([])
 const loading = ref(true)
 
 const riskStatus = computed(() => {
-  const totalValue = positions.value.reduce((sum, p) => sum + (p.current_value || 0), 0)
+  const totalValue = positions.value.reduce((sum, p) => sum + (p.market_value || 0), 0)
   const usage = totalValue / config.value.max_total_position
   if (usage > 0.9) return 'danger'
   if (usage > 0.7) return 'warning'
@@ -122,7 +122,7 @@ const riskStatus = computed(() => {
 })
 
 const riskMessage = computed(() => {
-  const totalValue = positions.value.reduce((sum, p) => sum + (p.current_value || 0), 0)
+  const totalValue = positions.value.reduce((sum, p) => sum + (p.market_value || 0), 0)
   const usage = (totalValue / config.value.max_total_position * 100).toFixed(0)
   
   if (riskStatus.value === 'safe') return `總持倉使用率 ${usage}%，風控狀態正常`

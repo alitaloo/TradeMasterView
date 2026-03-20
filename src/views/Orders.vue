@@ -325,8 +325,8 @@ th {
   font-weight: 500;
 }
 
-.direction.BUY { background: #22c55e20; color: #22c55e; }
-.direction.SELL { background: #ef444420; color: #ef4444; }
+.direction.BUY { background: rgba(31, 111, 235, 0.2); color: var(--color-buy); }
+.direction.SELL { background: rgba(218, 54, 51, 0.2); color: var(--color-sell); }
 
 .status {
   padding: 4px 8px;

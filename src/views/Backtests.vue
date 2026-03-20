@@ -33,7 +33,7 @@
               <td>${{ formatNumber(item.cash) }}</td>
               <td>${{ formatNumber(item.market_value) }}</td>
               <td :class="item.unrealized_pnl >= 0 ? 'profit' : 'loss'">
-                ${{ formatNumber(item.unrealized_pnl) }} ({{ item.unrealized_pnl_pct }}%)
+                ${{ formatNumber(item.unrealized_pnl) }}
               </td>
               <td :class="item.daily_pnl >= 0 ? 'profit' : 'loss'">
                 {{ item.daily_pnl >= 0 ? '+' : '' }}${{ formatNumber(item.daily_pnl) }}
