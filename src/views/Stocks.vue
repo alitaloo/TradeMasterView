@@ -335,7 +335,7 @@ onMounted(fetchStocks)
 }
 
 .card-icon {
-  font-size: 2rem;
+  font-size: 1.4rem;
 }
 
 .card-title {
@@ -380,7 +380,8 @@ onMounted(fetchStocks)
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow: auto;
+  max-height: calc(100vh - 180px);
 }
 
 .stocks-table {

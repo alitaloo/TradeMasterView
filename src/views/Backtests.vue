@@ -57,7 +57,7 @@
         </div>
 
         <!-- 每日結算列表 -->
-        <div class="card">
+        <div class="card" style="max-height: calc(100vh - 280px); overflow: auto;">
           <div class="card-header">
             <h2 class="card-title">📅 每日結算紀錄</h2>
           </div>

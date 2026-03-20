@@ -18,7 +18,7 @@
     <div v-if="loading" class="loading">載入中...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
     
-    <div v-else class="strategies-container">
+    <div v-else class="strategies-container" style="max-height: calc(100vh - 160px); overflow: auto;">
       <table class="strategies-table">
         <thead>
           <tr>
@@ -32,7 +32,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="strategy in filteredStrategies" :key="strategy.symbol + strategy.timeframe">
+          <tr v-for="strategy in paginatedStrategies" :key="strategy.symbol + strategy.timeframe + strategy.indicator">
             <td class="symbol">{{ strategy.symbol.replace('US.', '') }}</td>
             <td>
               <span class="timeframe-badge" :class="strategy.timeframe">
@@ -51,12 +51,17 @@
       <div v-if="filteredStrategies.length === 0" class="no-data">
         沒有找到匹配的策略
       </div>
+      <div class="strat-pagination" v-if="totalStratPages > 1">
+        <button :disabled="stratPage===1" @click="stratPage--" class="page-btn">‹</button>
+        <span class="page-info">{{ stratPage }}/{{ totalStratPages }}（共{{ filteredStrategies.length }}筆）</span>
+        <button :disabled="stratPage===totalStratPages" @click="stratPage++" class="page-btn">›</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useToast } from '@/composables/useToast'
 
 const API_URL = import.meta.env.VITE_API_URL
@@ -87,6 +92,9 @@ const fetchApi = async (url, options = {}) => {
   }
 }
 
+const stratPage = ref(1)
+const STRAT_PAGE_SIZE = 20
+
 const filteredStrategies = computed(() => {
   if (!searchQuery.value) return strategies.value
   const query = searchQuery.value.toUpperCase()
@@ -95,6 +103,14 @@ const filteredStrategies = computed(() => {
     s.indicator.toUpperCase().includes(query)
   )
 })
+
+const totalStratPages = computed(() => Math.ceil(filteredStrategies.value.length / STRAT_PAGE_SIZE) || 1)
+const paginatedStrategies = computed(() => {
+  const start = (stratPage.value - 1) * STRAT_PAGE_SIZE
+  return filteredStrategies.value.slice(start, start + STRAT_PAGE_SIZE)
+})
+
+watch(searchQuery, () => { stratPage.value = 1 })
 
 const timeframeLabel = (tf) => {
   const labels = {
@@ -252,6 +268,10 @@ onMounted(() => {
   border-color: #4F46E5;
 }
 
+.strat-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px; border-top: 1px solid #21262d; }
+.page-btn { background: #21262d; border: 1px solid #30363d; color: #e6edf3; padding: 3px 10px; border-radius: 4px; cursor: pointer; }
+.page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.page-info { font-size: 12px; color: #8b949e; }
 .loading, .error, .no-data {
   text-align: center;
   padding: 48px;

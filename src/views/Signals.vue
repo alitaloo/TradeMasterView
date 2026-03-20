@@ -277,7 +277,8 @@ onMounted(() => {
   background: var(--bg-secondary);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  overflow: auto;
+  max-height: calc(100vh - 170px);
 }
 
 table {

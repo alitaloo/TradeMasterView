@@ -37,9 +37,12 @@ import ToastContainer from './components/ToastContainer.vue'
 
 .main-content {
   flex: 1;
-  padding: var(--space-6);
+  padding: 16px 20px;
   overflow-y: auto;
   background: var(--bg-primary);
+  height: 100vh;
+  max-height: 100vh;
+  box-sizing: border-box;
 }
 
 /* 页面切换动画 */

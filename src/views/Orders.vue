@@ -70,7 +70,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="order in orders" :key="order.id">
+          <tr v-for="order in paginatedOrders" :key="order.id">
             <td class="order-id">{{ order.order_id }}</td>
             <td class="symbol">{{ order.symbol }}</td>
             <td>
@@ -92,6 +92,11 @@
           </tr>
         </tbody>
       </table>
+      <div class="orders-pagination" v-if="totalOrderPages > 1">
+        <button :disabled="ordersPage===1" @click="ordersPage--" class="page-btn">‹</button>
+        <span class="page-info">{{ ordersPage }}/{{ totalOrderPages }}（共{{ orders.length }}筆）</span>
+        <button :disabled="ordersPage===totalOrderPages" @click="ordersPage++" class="page-btn">›</button>
+      </div>
     </div>
 
     <!-- 新增/編輯 Modal -->
@@ -162,6 +167,13 @@ let statusChart = null, symbolChart = null, typeChart = null
 const orders = ref([])
 const loading = ref(true)
 const showCharts = ref(false)
+const ordersPage = ref(1)
+const ORDERS_PAGE_SIZE = 15
+const totalOrderPages = computed(() => Math.ceil(orders.value.length / ORDERS_PAGE_SIZE) || 1)
+const paginatedOrders = computed(() => {
+  const start = (ordersPage.value - 1) * ORDERS_PAGE_SIZE
+  return orders.value.slice(start, start + ORDERS_PAGE_SIZE)
+})
 const filters = ref({
   status: '',
   symbol: ''
@@ -401,6 +413,10 @@ onMounted(() => {
 .profit { color: #3fb950 !important; }
 .loss { color: #f85149 !important; }
 
+.orders-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px; border-top: 1px solid #21262d; }
+.page-btn { background: #21262d; border: 1px solid #30363d; color: #e6edf3; padding: 3px 10px; border-radius: 4px; cursor: pointer; }
+.page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.page-info { font-size: 12px; color: #8b949e; }
 .orders-page {
   animation: fadeIn 0.3s ease;
 }
