@@ -117,6 +117,87 @@
         <div v-if="riskLogs.length === 0" class="empty">暫無風控記錄</div>
       </div>
     </div>
+
+    <!-- ⚙️ 風控參數設定 -->
+    <div class="config-section risk-settings">
+      <h3>⚙️ 風控參數設定</h3>
+      <div class="settings-grid">
+        <!-- 最低信心度 -->
+        <div class="setting-item">
+          <label>最低信心度</label>
+          <div class="setting-input">
+            <input type="range" v-model.number="riskSettings.min_confidence" min="0.3" max="0.95" step="0.05" />
+            <input type="number" v-model.number="riskSettings.min_confidence" min="0.3" max="0.95" step="0.05" />
+            <span class="setting-unit">{{ (riskSettings.min_confidence * 100).toFixed(0) }}%</span>
+          </div>
+        </div>
+
+        <!-- 單筆上限 -->
+        <div class="setting-item">
+          <label>單筆上限</label>
+          <div class="setting-input">
+            <input type="range" v-model.number="riskSettings.max_single_amount_pct" min="0.01" max="0.5" step="0.01" />
+            <input type="number" v-model.number="riskSettings.max_single_amount_pct" min="0.01" max="0.5" step="0.01" />
+            <span class="setting-unit">{{ (riskSettings.max_single_amount_pct * 100).toFixed(0) }}%</span>
+          </div>
+        </div>
+
+        <!-- 單股上限 -->
+        <div class="setting-item">
+          <label>單股上限</label>
+          <div class="setting-input">
+            <input type="range" v-model.number="riskSettings.max_position_per_stock_pct" min="0.05" max="0.8" step="0.05" />
+            <input type="number" v-model.number="riskSettings.max_position_per_stock_pct" min="0.05" max="0.8" step="0.05" />
+            <span class="setting-unit">{{ (riskSettings.max_position_per_stock_pct * 100).toFixed(0) }}%</span>
+          </div>
+        </div>
+
+        <!-- 總持倉上限 -->
+        <div class="setting-item">
+          <label>總持倉上限</label>
+          <div class="setting-input">
+            <input type="range" v-model.number="riskSettings.max_total_position_pct" min="0.1" max="1.0" step="0.1" />
+            <input type="number" v-model.number="riskSettings.max_total_position_pct" min="0.1" max="1.0" step="0.1" />
+            <span class="setting-unit">{{ (riskSettings.max_total_position_pct * 100).toFixed(0) }}%</span>
+          </div>
+        </div>
+
+        <!-- 最大持倉股數 -->
+        <div class="setting-item">
+          <label>最大持倉股數</label>
+          <div class="setting-input">
+            <input type="range" v-model.number="riskSettings.max_stocks" min="1" max="30" step="1" />
+            <input type="number" v-model.number="riskSettings.max_stocks" min="1" max="30" step="1" />
+            <span class="setting-unit">檔</span>
+          </div>
+        </div>
+
+        <!-- 止損 -->
+        <div class="setting-item">
+          <label>止損</label>
+          <div class="setting-input">
+            <input type="range" v-model.number="riskSettings.stop_loss_pct" min="0.01" max="0.3" step="0.01" />
+            <input type="number" v-model.number="riskSettings.stop_loss_pct" min="0.01" max="0.3" step="0.01" />
+            <span class="setting-unit">{{ (riskSettings.stop_loss_pct * 100).toFixed(0) }}%</span>
+          </div>
+        </div>
+
+        <!-- 止盈 -->
+        <div class="setting-item">
+          <label>止盈</label>
+          <div class="setting-input">
+            <input type="range" v-model.number="riskSettings.take_profit_pct" min="0.01" max="0.5" step="0.01" />
+            <input type="number" v-model.number="riskSettings.take_profit_pct" min="0.01" max="0.5" step="0.01" />
+            <span class="setting-unit">{{ (riskSettings.take_profit_pct * 100).toFixed(0) }}%</span>
+          </div>
+        </div>
+      </div>
+      <div class="settings-actions">
+        <button class="btn btn-primary" @click="saveRiskSettings" :disabled="saving">
+          {{ saving ? '儲存中...' : '💾 儲存設定' }}
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -125,7 +206,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useToast } from '@/composables/useToast'
 
 const API_URL = import.meta.env.VITE_API_URL
-const { error } = useToast()
+const { error, success } = useToast()
 
 const config = ref({
   max_single_amount: 10000,
@@ -135,6 +216,19 @@ const config = ref({
   min_confidence: 0.6,
   max_stocks: 10
 })
+
+// 風控參數設定（來自後端 DB）
+const riskSettings = ref({
+  min_confidence: 0.6,
+  max_single_amount_pct: 0.10,
+  max_position_per_stock_pct: 0.25,
+  max_total_position_pct: 0.90,
+  max_stocks: 10,
+  stop_loss_pct: 0.05,
+  take_profit_pct: 0.10
+})
+
+const saving = ref(false)
 
 const positions = ref([])
 const riskLogs = ref([])
@@ -245,8 +339,53 @@ const formatTime = (timestamp) => {
   return new Date(d).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
 }
 
+// 獲取風控參數設定
+const fetchRiskSettings = async () => {
+  try {
+    const res = await fetch(`${API_URL}/api/v1/config/risk`)
+    const data = await res.json()
+    if (data.config) {
+      riskSettings.value = {
+        min_confidence: data.config.min_confidence ?? 0.6,
+        max_single_amount_pct: data.config.max_single_amount_pct ?? 0.10,
+        max_position_per_stock_pct: data.config.max_position_per_stock_pct ?? 0.25,
+        max_total_position_pct: data.config.max_total_position_pct ?? 0.90,
+        max_stocks: data.config.max_stocks ?? 10,
+        stop_loss_pct: data.config.stop_loss_pct ?? 0.05,
+        take_profit_pct: data.config.take_profit_pct ?? 0.10
+      }
+    }
+  } catch (err) {
+    console.error('Failed to fetch risk settings:', err)
+  }
+}
+
+// 儲存風控參數設定
+const saveRiskSettings = async () => {
+  saving.value = true
+  try {
+    const res = await fetch(`${API_URL}/api/v1/config/risk`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(riskSettings.value)
+    })
+    const data = await res.json()
+    if (data.status === 'ok') {
+      success('風控參數已更新')
+    } else {
+      error(data.message || '儲存失敗')
+    }
+  } catch (err) {
+    console.error('Failed to save risk settings:', err)
+    error('儲存失敗')
+  } finally {
+    saving.value = false
+  }
+}
+
 onMounted(() => {
   fetchData()
+  fetchRiskSettings()
 })
 </script>
 
@@ -402,5 +541,103 @@ h3 {
   text-align: center;
   padding: 20px;
   color: var(--color-text-muted);
+}
+
+/* 風控參數設定樣式 */
+.risk-settings {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.risk-settings h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.setting-item label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.setting-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.setting-input input[type="range"] {
+  flex: 1;
+  height: 6px;
+  -webkit-appearance: none;
+  background: var(--color-bg-tertiary);
+  border-radius: 3px;
+  outline: none;
+}
+
+.setting-input input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--color-primary);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.setting-input input[type="number"] {
+  width: 70px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.setting-input input[type="number"]:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.setting-unit {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  min-width: 40px;
+}
+
+.settings-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.settings-actions .btn {
+  padding: 8px 20px;
+}
+
+@media (max-width: 768px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
