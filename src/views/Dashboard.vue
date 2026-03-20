@@ -1,131 +1,124 @@
 <template>
   <div class="dashboard">
-    <!-- 歡迎橫幅 -->
-    <div class="welcome-banner">
-      <div class="welcome-content">
-        <h1 class="welcome-title">歡迎回來，Z 👋</h1>
-        <p class="welcome-subtitle">今天是 {{ currentDate }}，市場 {{ marketStatus }}</p>
-        <FreshnessIndicator :timestamp="store.signalsTimestamp" class="mt-2" />
-        <FreshnessIndicator :timestamp="newsSyncTimestamp" label="新聞同步於" class="mt-1" />
-      </div>
-      <div class="quick-actions">
-        <button class="action-btn" @click="$router.push('/signals')">
-          <span>📈</span> 查看信號
-        </button>
-        <button class="action-btn secondary" @click="$router.push('/backtests')">
-          <span>📊</span> 回測分析
-        </button>
-      </div>
-    </div>
-    
-    <!-- 統計卡片 -->
+    <!-- 頂部：4 個數字卡 -->
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-icon long">📈</div>
+        <div class="stat-icon">💰</div>
         <div class="stat-info">
-          <span class="stat-label">多頭信號</span>
-          <span class="stat-value long">{{ stats.longSignals }}</span>
+          <span class="stat-label">總資產</span>
+          <span class="stat-value">${{ formatNumber(accountStatus.total_assets) }}</span>
         </div>
       </div>
-      
       <div class="stat-card">
-        <div class="stat-icon short">📉</div>
+        <div class="stat-icon">💵</div>
         <div class="stat-info">
-          <span class="stat-label">空頭信號</span>
-          <span class="stat-value short">{{ stats.shortSignals }}</span>
+          <span class="stat-label">現金</span>
+          <span class="stat-value">${{ formatNumber(accountStatus.cash) }}</span>
         </div>
       </div>
-      
       <div class="stat-card">
-        <div class="stat-icon success">💰</div>
+        <div class="stat-icon" :class="accountStatus.unrealized_pnl >= 0 ? 'profit' : 'loss'">📈</div>
         <div class="stat-info">
-          <span class="stat-label">今日收益</span>
-          <span class="stat-value success">+{{ stats.todayReturn }}%</span>
+          <span class="stat-label">未實現損益</span>
+          <span class="stat-value" :class="accountStatus.unrealized_pnl >= 0 ? 'profit' : 'loss'">
+            {{ accountStatus.unrealized_pnl >= 0 ? '+' : '' }}${{ formatNumber(accountStatus.unrealized_pnl) }} ({{ accountStatus.unrealized_pnl_pct }}%)
+          </span>
         </div>
       </div>
-      
       <div class="stat-card">
-        <div class="stat-icon warning">⚠️</div>
+        <div class="stat-icon">📊</div>
         <div class="stat-info">
-          <span class="stat-label">待處理</span>
-          <span class="stat-value">{{ stats.pendingTasks }}</span>
+          <span class="stat-label">今日信號數</span>
+          <span class="stat-value">{{ todaySignalCount }}</span>
         </div>
       </div>
     </div>
-    
-    <!-- 主要內容區域 -->
-    <div class="dashboard-content">
-      <!-- 左側：最新信號 -->
-      <div class="content-left">
-        <div class="card">
+
+    <!-- 中間區域 -->
+    <div class="content-grid">
+      <!-- 中間左：持倉列表 -->
+      <div class="card positions-card">
+        <div class="card-header">
+          <h2 class="card-title">📋 持倉 ({{ positions.length }})</h2>
+        </div>
+        <div class="positions-list">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>股票</th>
+                <th>數量</th>
+                <th>成本</th>
+                <th>現價</th>
+                <th>損益%</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="pos in positions" :key="pos.id">
+                <td class="symbol">{{ pos.symbol }}</td>
+                <td>{{ pos.quantity }}</td>
+                <td>${{ pos.average_cost?.toFixed(2) }}</td>
+                <td>${{ pos.current_price?.toFixed(2) }}</td>
+                <td :class="pos.return_pct >= 0 ? 'profit' : 'loss'">
+                  {{ pos.return_pct >= 0 ? '+' : '' }}{{ (pos.return_pct || 0).toFixed(2) }}%
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-if="positions.length === 0" class="empty">暫無持倉</div>
+        </div>
+      </div>
+
+      <!-- 中間右：市場狀況 + 最新信號 -->
+      <div class="right-column">
+        <!-- 市場狀況 -->
+        <div class="card market-card">
+          <div class="card-header">
+            <h2 class="card-title">🌍 市場狀況</h2>
+          </div>
+          <div class="market-grid">
+            <div v-for="m in marketData" :key="m.type" class="market-item">
+              <span class="market-symbol">{{ m.type }}</span>
+              <span class="market-value">${{ m.value?.toFixed(2) || '-' }}</span>
+              <span v-if="m.change !== undefined" class="market-change" :class="m.change >= 0 ? 'profit' : 'loss'">
+                {{ m.change >= 0 ? '+' : '' }}{{ m.change.toFixed(2) }}%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 最新信號 -->
+        <div class="card signals-card">
           <div class="card-header">
             <h2 class="card-title">📈 最新信號</h2>
             <router-link to="/signals" class="view-all">查看全部 →</router-link>
           </div>
-          <div class="signal-list">
-            <SignalCard 
-              v-for="signal in latestSignals" 
-              :key="signal.id"
-              :signal="signal"
-            />
+          <div class="signals-list">
+            <div v-for="signal in latestSignals" :key="signal.id" class="signal-item">
+              <div class="signal-info">
+                <span class="signal-symbol">{{ signal.symbol }}</span>
+                <span class="signal-type" :class="signal.signal_type?.toLowerCase()">{{ signal.signal_type }}</span>
+              </div>
+              <div class="signal-meta">
+                <span class="signal-confidence">信心度: {{ signal.confidence }}</span>
+              </div>
+            </div>
+            <div v-if="latestSignals.length === 0" class="empty">暫無信號</div>
           </div>
         </div>
       </div>
-      
-      <!-- 右側：策略表現 -->
-      <div class="content-right">
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">🏆 策略表現</h2>
-          </div>
-          <div class="strategy-list">
-            <div 
-              v-for="strategy in topStrategies" 
-              :key="strategy.name + strategy.symbol"
-              class="strategy-item"
-            >
-              <div class="strategy-info">
-                <span class="strategy-name">{{ strategy.name }}</span>
-                <span class="strategy-symbol">{{ strategy.symbol }}</span>
-              </div>
-              <div class="strategy-stats">
-                <span class="strategy-return" :class="strategy.return >= 0 ? 'long' : 'short'">
-                  {{ strategy.return >= 0 ? '+' : '' }}{{ formatNumber(strategy.return) }}%
-                </span>
-                <span class="strategy-sharpe">Sharpe: {{ formatNumber(strategy.sharpe) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 投資組合分布 -->
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">💼 投資組合</h2>
-          </div>
-          <div class="portfolio-summary">
-            <div class="portfolio-item">
-              <span class="portfolio-label">總資產</span>
-              <span class="portfolio-value">${{ formatNumber(portfolio.totalAssets) }}</span>
-            </div>
-            <div class="portfolio-item">
-              <span class="portfolio-label">今日盈虧</span>
-              <span class="portfolio-value" :class="portfolio.todayPnL >= 0 ? 'long' : 'short'">
-                {{ portfolio.todayPnL >= 0 ? '+' : '' }}${{ formatNumber(portfolio.todayPnL) }}
-              </span>
-            </div>
-            <div class="portfolio-item">
-              <span class="portfolio-label">持倉數量</span>
-              <span class="portfolio-value">{{ portfolio.positions?.length || 0 }} 檔</span>
-            </div>
-          </div>
-        </div>
+    </div>
 
-        <!-- 系統狀態面板 -->
-        <SystemStatusPanel />
-
-        <!-- 手動控制面板 -->
-        <ManualActionsPanel />
+    <!-- 底部：最新新聞 -->
+    <div class="card news-card">
+      <div class="card-header">
+        <h2 class="card-title">📰 最新新聞</h2>
+      </div>
+      <div class="news-list">
+        <a v-for="news in latestNews" :key="news.id" :href="news.url" target="_blank" class="news-item">
+          <span class="news-title">{{ news.title }}</span>
+          <span class="news-source">{{ news.source }}</span>
+        </a>
+        <div v-if="latestNews.length === 0" class="empty">暫無新聞</div>
       </div>
     </div>
   </div>
@@ -133,275 +126,363 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useTradeMasterStore } from '../stores/trademaster'
-import { newsApi } from '../api/index.js'
-import SignalCard from '../components/SignalCard.vue'
-import FreshnessIndicator from '../components/FreshnessIndicator.js'
-import SystemStatusPanel from '../components/SystemStatusPanel.vue'
-import ManualActionsPanel from '../components/ManualActionsPanel.vue'
-import { getUSMarketStatus } from '../utils/datetime.js'
 
-const store = useTradeMasterStore()
+const API_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
-// 新聞同步狀態
-const newsSyncTimestamp = ref(null)
+const accountStatus = ref({})
+const positions = ref([])
+const signals = ref([])
+const news = ref([])
+const marketRaw = ref([])
+const loading = ref(true)
 
-const currentDate = computed(() => {
-  return new Date().toLocaleDateString('zh-TW', { 
-    month: 'long', 
-    day: 'numeric', 
-    weekday: 'long' 
+const marketData = computed(() => {
+  const result = []
+  const marketMap = {}
+  marketRaw.value.forEach(m => {
+    marketMap[m.type] = m
   })
+  
+  // SPY
+  if (marketMap['SPY']) {
+    result.push({ type: 'SPY', value: marketMap['SPY'].value, change: 0 })
+  }
+  // QQQ
+  if (marketMap['QQQ']) {
+    result.push({ type: 'QQQ', value: marketMap['QQQ'].value, change: 0 })
+  }
+  // VIX
+  if (marketMap['VIX']) {
+    result.push({ type: 'VIX', value: marketMap['VIX'].value, change: 0 })
+  }
+  // MARKET_DROP (大盤漲跌)
+  if (marketMap['MARKET_DROP']) {
+    result.push({ type: '大盤', value: null, change: marketMap['MARKET_DROP'].value })
+  }
+  
+  return result.slice(0, 4)
 })
 
-const marketStatus = computed(() => {
-  const status = getUSMarketStatus()
-  return status.text
+const latestSignals = computed(() => signals.value.slice(0, 5))
+const latestNews = computed(() => news.value.slice(0, 3))
+
+const todaySignalCount = computed(() => {
+  const today = new Date().toISOString().split('T')[0]
+  return signals.value.filter(s => s.created_at?.startsWith(today)).length
 })
 
-// 格式化數字
-const formatNumber = (num, decimals = 2) => {
-  if (typeof num !== 'number') return '0.00'
-  return num.toFixed(decimals)
+const formatNumber = (num) => {
+  if (!num && num !== 0) return '0.00'
+  return Number(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-// 統計卡片數據 — 不再硬編碼 fallback 數字
-const stats = computed(() => ({
-  longSignals: store.longSignals.length,
-  shortSignals: store.shortSignals.length,
-  todayReturn: store.portfolio.todayPnL && store.portfolio.totalAssets
-    ? ((store.portfolio.todayPnL / (store.portfolio.totalAssets - store.portfolio.todayPnL)) * 100).toFixed(2)
-    : '0.00',
-  pendingTasks: store.signals.filter(s => (s.status || '').toUpperCase() === 'PENDING').length
-}))
-
-// 最新信號
-const latestSignals = computed(() => store.signals.slice(0, 4))
-
-// 策略表現
-const topStrategies = computed(() => {
-  if (store.backtests.length > 0) {
-    return [...store.backtests]
-      .sort((a, b) => (b.sharpe || 0) - (a.sharpe || 0))
-      .slice(0, 4)
-      .map(b => ({
-        // strategy field may not exist; derive from file name or params
-        name: b.strategy || (b.file ? b.file.replace(/_results\.csv$/, '').replace(/_/g, ' ') : b.params || '-'),
-        symbol: b.symbol || '-',
-        return: b.return || 0,
-        sharpe: b.sharpe || 0
-      }))
-  }
-  return []
-})
-
-// 投資組合 — 直接使用 store 數據
-const portfolio = computed(() => store.portfolio)
-
-onMounted(async () => {
-  await store.initialize()
-  // 載入新聞同步狀態
+const fetchAllData = async () => {
+  loading.value = true
   try {
-    const res = await newsApi.getSyncStatus()
-    newsSyncTimestamp.value = res.news_last_synced || null
-  } catch (e) {
-    console.warn('News sync status unavailable:', e)
+    const [statusRes, posRes, signalsRes, newsRes, marketRes] = await Promise.all([
+      fetch(`${API_URL}/paper/status`),
+      fetch(`${API_URL}/paper/positions`),
+      fetch(`${API_URL}/signals?limit=10`),
+      fetch(`${API_URL}/news?limit=5`),
+      fetch(`${API_URL}/market`)
+    ])
+
+    const statusData = await statusRes.json()
+    if (statusData) {
+      accountStatus.value = {
+        total_assets: statusData.total_assets || 0,
+        cash: statusData.cash || 0,
+        unrealized_pnl: statusData.unrealized_pnl || 0,
+        unrealized_pnl_pct: statusData.unrealized_pnl_pct?.toFixed(2) || '0.00'
+      }
+    }
+
+    const posData = await posRes.json()
+    positions.value = posData.positions || []
+
+    const signalsData = await signalsRes.json()
+    signals.value = signalsData.signals || []
+
+    const newsData = await newsRes.json()
+    news.value = newsData.news || []
+
+    const marketData = await marketRes.json()
+    marketRaw.value = marketData.markets || []
+  } catch (err) {
+    console.error('Fetch dashboard data error:', err)
+  } finally {
+    loading.value = false
   }
+}
+
+onMounted(() => {
+  fetchAllData()
 })
 </script>
 
 <style scoped>
 .dashboard {
   animation: fadeIn 0.3s ease;
-}
-
-.welcome-banner {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24px;
-  background: linear-gradient(135deg, rgba(233, 69, 96, 0.2) 0%, rgba(102, 126, 234, 0.2) 100%);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  margin-bottom: 24px;
-}
-
-.welcome-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.welcome-subtitle {
-  color: var(--color-text-secondary);
-  font-size: 0.9375rem;
-}
-
-.quick-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: var(--gradient-accent);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.action-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-glow);
-}
-
-.action-btn.secondary {
-  background: var(--color-bg-tertiary);
-  border: 1px solid var(--color-border);
+  flex-direction: column;
+  gap: 16px;
+  max-height: calc(100vh - 120px);
+  overflow: hidden;
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px;
+  gap: 12px;
+  padding: 16px;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
 }
 
 .stat-icon {
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   font-size: 1.5rem;
-  border-radius: var(--radius-md);
 }
 
-.stat-icon.long { background: rgba(78, 204, 163, 0.2); }
-.stat-icon.short { background: rgba(255, 71, 87, 0.2); }
-.stat-icon.success { background: rgba(78, 204, 163, 0.2); }
-.stat-icon.warning { background: rgba(255, 193, 7, 0.2); }
+.stat-icon.profit { color: #22c55e; }
+.stat-icon.loss { color: #ef4444; }
 
 .stat-label {
   display: block;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: var(--color-text-muted);
-  margin-bottom: 4px;
 }
 
 .stat-value {
-  font-size: 1.5rem;
+  font-size: 1.125rem;
   font-weight: 700;
 }
 
-.stat-value.long { color: var(--color-success); }
-.stat-value.short { color: var(--color-danger); }
+.stat-value.profit { color: #22c55e; }
+.stat-value.loss { color: #ef4444; }
 
-.dashboard-content {
+.content-grid {
   display: grid;
   grid-template-columns: 1fr 360px;
-  gap: 24px;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.content-left,
-.content-right {
+.right-column {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
+  min-height: 0;
+}
+
+.card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.card-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin: 0;
 }
 
 .view-all {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: var(--color-accent);
 }
 
-.signal-list {
+.positions-card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.strategy-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.positions-list {
+  flex: 1;
+  overflow-y: auto;
 }
 
-.strategy-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.data-table th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-bg-tertiary);
+  position: sticky;
+  top: 0;
+}
+
+.symbol {
+  font-weight: 600;
+}
+
+.profit { color: #22c55e; }
+.loss { color: #ef4444; }
+
+.market-card {
+  flex-shrink: 0;
+}
+
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
   padding: 12px;
+}
+
+.market-item {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
   background: var(--color-bg-tertiary);
   border-radius: var(--radius-md);
 }
 
-.strategy-info {
-  display: flex;
-  flex-direction: column;
+.market-symbol {
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
-.strategy-name {
+.market-value {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.market-change {
+  font-size: 0.75rem;
+}
+
+.signals-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.signals-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.signal-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.signal-item:last-child {
+  border-bottom: none;
+}
+
+.signal-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.signal-symbol {
+  font-weight: 600;
   font-size: 0.875rem;
+}
+
+.signal-type {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.625rem;
   font-weight: 500;
 }
 
-.strategy-symbol {
+.signal-type.buy { background: #22c55e20; color: #22c55e; }
+.signal-type.sell { background: #ef444420; color: #ef4444; }
+.signal-type.hold { background: #6b728020; color: #6b7280; }
+
+.signal-meta {
   font-size: 0.75rem;
   color: var(--color-text-muted);
 }
 
-.strategy-stats {
-  text-align: right;
+.news-card {
+  flex-shrink: 0;
 }
 
-.strategy-return {
-  display: block;
-  font-weight: 600;
+.news-list {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  overflow-x: auto;
 }
 
-.strategy-sharpe {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-
-.portfolio-summary {
+.news-item {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-
-.portfolio-item {
-  display: flex;
-  justify-content: space-between;
+  gap: 4px;
   padding: 12px;
   background: var(--color-bg-tertiary);
   border-radius: var(--radius-md);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.2s;
 }
 
-.portfolio-label {
+.news-item:hover {
+  background: var(--color-bg-hover);
+}
+
+.news-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.news-source {
+  font-size: 0.75rem;
   color: var(--color-text-muted);
 }
 
-.portfolio-value {
-  font-weight: 600;
+.empty {
+  text-align: center;
+  padding: 20px;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
 }
 
 @media (max-width: 1024px) {
@@ -409,46 +490,16 @@ onMounted(async () => {
     grid-template-columns: repeat(2, 1fr);
   }
   
-  .dashboard-content {
+  .content-grid {
     grid-template-columns: 1fr;
   }
-}
-
-.freshness-indicator {
-  font-size: 0.75rem;
-  padding: 4px 8px;
-  border-radius: 4px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.freshness-indicator.fresh {
-  background: rgba(78, 204, 163, 0.2);
-  color: var(--color-success);
-}
-
-.freshness-indicator.normal {
-  background: rgba(78, 204, 163, 0.1);
-  color: var(--color-success);
-}
-
-.freshness-indicator.stale {
-  background: rgba(255, 193, 7, 0.2);
-  color: #ffc107;
-}
-
-.freshness-indicator.outdated {
-  background: rgba(255, 71, 87, 0.2);
-  color: var(--color-danger);
-}
-
-.freshness-indicator.unknown {
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-muted);
-}
-
-.mt-2 {
-  margin-top: 8px;
+  
+  .right-column {
+    flex-direction: row;
+  }
+  
+  .market-card, .signals-card {
+    flex: 1;
+  }
 }
 </style>

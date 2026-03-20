@@ -120,23 +120,18 @@ const loadData = async () => {
     isEnabled.value = status.enabled === true || status.enabled === 'true'
     debugInfo.value = `enabled=${status.enabled}, type=${typeof status.enabled}`
     summary.value = {
-      total: status.total_assets,
-      cash: status.cash,
-      market_value: status.market_value,
-      initial_balance: status.initial_balance,
-      unrealized_pnl: status.unrealized_pnl,
-      unrealized_pnl_pct: 0,
+      total: status.total_assets || 0,
+      cash: status.cash || 0,
+      market_value: status.market_value || 0,
+      initial_balance: status.initial_balance || 0,
+      unrealized_pnl: status.unrealized_pnl || 0,
+      unrealized_pnl_pct: status.unrealized_pnl_pct || 0,
       overall_pnl: status.overall_pnl || 0,
       overall_pnl_pct: status.overall_pnl_pct || 0
     }
     
     // 處理持倉
-    positions.value = posRes.positions || []
-    
-    // 計算未實現損益百分比
-    if (summary.value.total > 0) {
-      summary.value.unrealized_pnl_pct = ((summary.value.unrealized_pnl / summary.value.total) * 100).toFixed(2)
-    }
+    positions.value = posRes.positions || posRes || []
     
     // 處理訂單
     orders.value = orderRes.orders || []

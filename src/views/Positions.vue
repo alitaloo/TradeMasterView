@@ -202,18 +202,26 @@ const fetchPositions = async () => {
     // await fetch(`${API_URL}/positions/sync`, { method: 'POST' })
     
     // 獲取持倉列表
-    const response = await fetch(`${API_URL}/positions`)
+    const response = await fetch(`${API_URL}/paper/positions`)
     const data = await response.json()
     
-    if (data.status === 'ok') {
+    if (data.positions) {
       positions.value = data.positions || []
     }
     
     // 獲取摘要
-    const summaryRes = await fetch(`${API_URL}/positions/summary`)
+    const summaryRes = await fetch(`${API_URL}/paper/summary`)
     const summaryData = await summaryRes.json()
-    if (summaryData.status === 'ok') {
-      summary.value = summaryData.summary || {}
+    if (summaryData.summary) {
+      const s = summaryData.summary
+      summary.value = {
+        total_value: s.market_value || 0,
+        total_capital: s.total || 0,
+        available_cash: s.cash || 0,
+        unrealized_pnl: s.unrealized_pnl || 0,
+        return_pct: s.unrealized_pnl_pct || 0,
+        position_count: s.position_count || 0
+      }
     }
   } catch (err) {
     console.error('Fetch positions error:', err)

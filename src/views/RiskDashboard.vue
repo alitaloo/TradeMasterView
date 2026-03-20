@@ -65,7 +65,7 @@
           <div class="risk-symbol">{{ pos.symbol }}</div>
           <div class="risk-info">
             <div class="risk-value">
-              持倉: ${{ (pos.current_value || 0).toLocaleString() }}
+              持倉: ${{ (pos.market_value || 0).toLocaleString() }}
             </div>
             <div class="risk-pnl" :class="(pos.unrealized_pnl || 0) >= 0 ? 'profit' : 'loss'">
               損益: ${{ (pos.unrealized_pnl || 0).toLocaleString() }} ({{ (pos.return_pct || 0).toFixed(2) }}%)
@@ -134,9 +134,9 @@ const fetchData = async () => {
   loading.value = true
   try {
     // 獲取持倉
-    const posRes = await fetch(`${API_URL}/positions`)
+    const posRes = await fetch(`${API_URL}/paper/positions`)
     const posData = await posRes.json()
-    if (posData.status === 'ok') {
+    if (posData.positions) {
       positions.value = posData.positions || []
     }
   } catch (err) {
@@ -152,14 +152,14 @@ const checkRisk = () => {
 }
 
 const getRiskLevel = (pos) => {
-  const value = pos.current_value || 0
+  const value = pos.market_value || 0
   if (value > config.value.max_position_per_stock) return 'danger'
   if (value > config.value.max_position_per_stock * 0.8) return 'warning'
   return 'safe'
 }
 
 const getRiskLabel = (pos) => {
-  const value = pos.current_value || 0
+  const value = pos.market_value || 0
   if (value > config.value.max_position_per_stock) return '⚠️ 超限'
   if (value > config.value.max_position_per_stock * 0.8) return '⚡ 接近上限'
   return '✅ 正常'

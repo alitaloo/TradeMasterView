@@ -139,14 +139,14 @@ const form = ref({
 const fetchOrders = async () => {
   loading.value = true
   try {
-    let url = `${API_URL}/orders?limit=100`
+    let url = `${API_URL}/paper/orders?limit=100`
     if (filters.value.status) url += `&status=${filters.value.status}`
     if (filters.value.symbol) url += `&symbol=${filters.value.symbol}`
     
     const response = await fetch(url)
     const data = await response.json()
     
-    if (data.status === 'ok') {
+    if (data.orders) {
       orders.value = data.orders || []
     }
   } catch (err) {

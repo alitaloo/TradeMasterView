@@ -4,45 +4,42 @@
       <h1 class="page-title">📊 回測結果</h1>
     </div>
     
-    <div class="backtests-content">
-      <div class="card chart-card">
-        <div class="card-header">
-          <h2 class="card-title">📈 權益曲線</h2>
-        </div>
-        <div class="chart-container">
-          <canvas ref="equityChart"></canvas>
-        </div>
-      </div>
-      
+    <div v-if="loading" class="loading">載入中...</div>
+    <div v-else-if="dailySummaries.length === 0" class="empty">暫無回測數據</div>
+    
+    <div v-else class="backtests-content">
+      <!-- 每日結算列表 -->
       <div class="card">
         <div class="card-header">
-          <h2 class="card-title">🏆 策略排名</h2>
+          <h2 class="card-title">📅 每日結算紀錄</h2>
         </div>
         <table class="table">
           <thead>
             <tr>
-              <th>排名</th>
-              <th>策略</th>
-              <th>股票</th>
-              <th>報酬</th>
-              <th>夏普</th>
-              <th>最大回撤</th>
+              <th>日期</th>
+              <th>總價值</th>
+              <th>現金</th>
+              <th>市值</th>
+              <th>未實現損益</th>
+              <th>整體盈虧</th>
+              <th>買入</th>
+              <th>賣出</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(item, index) in topStrategies" :key="index">
-              <td>
-                <span class="rank-badge" :class="getRankClass(index)">
-                  {{ index + 1 }}
-                </span>
+            <tr v-for="item in dailySummaries" :key="item.id">
+              <td>{{ item.date }}</td>
+              <td>${{ formatNumber(item.total_value) }}</td>
+              <td>${{ formatNumber(item.cash) }}</td>
+              <td>${{ formatNumber(item.market_value) }}</td>
+              <td :class="item.unrealized_pnl >= 0 ? 'profit' : 'loss'">
+                ${{ formatNumber(item.unrealized_pnl) }} ({{ item.unrealized_pnl_pct }}%)
               </td>
-              <td>{{ item.strategy }}</td>
-              <td>{{ item.symbol }}</td>
-              <td :class="item.return >= 0 ? 'long' : 'short'">
-                {{ item.return >= 0 ? '+' : '' }}{{ item.return }}%
+              <td :class="item.daily_pnl >= 0 ? 'profit' : 'loss'">
+                {{ item.daily_pnl >= 0 ? '+' : '' }}${{ formatNumber(item.daily_pnl) }}
               </td>
-              <td>{{ item.sharpe }}</td>
-              <td>{{ item.maxDD }}%</td>
+              <td>{{ item.buy_count }}</td>
+              <td>{{ item.sell_count }}</td>
             </tr>
           </tbody>
         </table>
@@ -54,23 +51,33 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 
-const topStrategies = ref([
-  { strategy: 'Stooq_V2', symbol: 'WDC', return: 109.3, sharpe: 105.5, maxDD: 20.9 },
-  { strategy: 'Stooq_V2', symbol: 'TSM', return: 31.1, sharpe: 92.4, maxDD: 6.3 },
-  { strategy: 'Stooq_V2', symbol: 'GOOGL', return: 22.9, sharpe: 59.8, maxDD: 7.6 },
-  { strategy: 'MACD_Trend', symbol: 'TSLA', return: 198408, sharpe: 164.9, maxDD: 56.3 },
-  { strategy: 'Stooq_V2', symbol: 'COIN', return: 21.4, sharpe: 51.4, maxDD: 26.8 }
-])
+const API_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
-const getRankClass = (index) => {
-  if (index === 0) return 'gold'
-  if (index === 1) return 'silver'
-  if (index === 2) return 'bronze'
-  return ''
+const dailySummaries = ref([])
+const loading = ref(true)
+
+const formatNumber = (num) => {
+  if (!num && num !== 0) return '0.00'
+  return Number(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+const fetchData = async () => {
+  loading.value = true
+  try {
+    const res = await fetch(`${API_URL}/paper/daily-summary?limit=30`)
+    const data = await res.json()
+    if (data.summaries) {
+      dailySummaries.value = data.summaries
+    }
+  } catch (err) {
+    console.error('Fetch daily summary error:', err)
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {
-  // 初始化图表
+  fetchData()
 })
 </script>
 
@@ -89,53 +96,54 @@ onMounted(() => {
 }
 
 .backtests-content {
-  display: grid;
-  grid-template-columns: 1fr 400px;
+  display: flex;
+  flex-direction: column;
   gap: 24px;
 }
 
-.chart-card {
-  min-height: 400px;
+.card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 
-.chart-container {
-  height: 300px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-muted);
+.card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.rank-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  font-size: 0.875rem;
-  font-weight: 700;
+.card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table th {
   background: var(--color-bg-tertiary);
-  border-radius: 50%;
+  font-weight: 600;
+  font-size: 0.8125rem;
 }
 
-.rank-badge.gold {
-  background: linear-gradient(135deg, #ffd700, #ffb700);
-  color: #000;
-}
+.profit { color: #22c55e; }
+.loss { color: #ef4444; }
 
-.rank-badge.silver {
-  background: linear-gradient(135deg, #c0c0c0, #a0a0a0);
-  color: #000;
-}
-
-.rank-badge.bronze {
-  background: linear-gradient(135deg, #cd7f32, #b87333);
-  color: #fff;
-}
-
-@media (max-width: 1024px) {
-  .back tests-content {
-    grid-template-columns: 1fr;
-  }
+.loading, .empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--color-text-muted);
+  font-size: 1rem;
 }
 </style>
