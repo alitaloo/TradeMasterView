@@ -51,23 +51,30 @@
               <span class="param-value">{{ strategy.params }}</span>
             </div>
             <div class="strategy-perf">
-              <div class="perf-item">
-                <span class="perf-label">報酬</span>
-                <span class="perf-value" :class="strategy.return >= 0 ? 'long' : 'short'">
-                  {{ strategy.return >= 0 ? '+' : '' }}{{ strategy.return }}%
-                </span>
-              </div>
-              <div class="perf-item">
-                <span class="perf-label">夏普</span>
-                <span class="perf-value">{{ strategy.sharpe }}</span>
-              </div>
-              <div v-if="strategy.win_rate" class="perf-item">
-                <span class="perf-label">勝率</span>
-                <span class="perf-value">{{ strategy.win_rate }}%</span>
-              </div>
+              <template v-if="strategy.return !== null && strategy.return !== undefined">
+                <div class="perf-item">
+                  <span class="perf-label">報酬</span>
+                  <span class="perf-value" :class="strategy.return >= 0 ? 'long' : 'short'">
+                    {{ strategy.return >= 0 ? '+' : '' }}{{ strategy.return }}%
+                  </span>
+                </div>
+                <div class="perf-item">
+                  <span class="perf-label">夏普</span>
+                  <span class="perf-value">{{ strategy.sharpe }}</span>
+                </div>
+                <div v-if="strategy.win_rate" class="perf-item">
+                  <span class="perf-label">勝率</span>
+                  <span class="perf-value">{{ strategy.win_rate }}%</span>
+                </div>
+              </template>
+              <template v-else>
+                <div class="perf-pending">📋 尚未回測</div>
+              </template>
             </div>
             <div class="data-source-tag" :class="strategy.data_source">
-              {{ strategy.data_source === 'real' ? '✅ 真實數據' : '⚡ 理論估算' }}
+              <template v-if="strategy.data_source === 'real'">✅ 真實數據 ({{ strategy.data_points }} 筆)</template>
+              <template v-else-if="strategy.data_source === 'no_backtest'">⏳ 待回測</template>
+              <template v-else>📐 理論估算</template>
             </div>
           </div>
           
@@ -542,6 +549,15 @@ onMounted(fetchStrategies)
 .data-source-tag.estimated {
   background: rgba(110, 118, 129, 0.2);
   color: #8b949e;
+}
+.data-source-tag.no_backtest {
+  background: rgba(210, 153, 34, 0.15);
+  color: #d29922;
+}
+.perf-pending {
+  font-size: 12px;
+  color: #8b949e;
+  padding: 4px 0;
 }
 
 .strategy-footer {
