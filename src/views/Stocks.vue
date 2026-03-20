@@ -294,6 +294,9 @@ onMounted(fetchStocks)
 
 .stocks-page {
   animation: fadeIn 0.3s ease;
+  max-height: calc(100vh - 68px);
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .page-header {
