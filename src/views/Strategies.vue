@@ -371,11 +371,7 @@ onMounted(fetchStrategies)
 }
 
 .search-box::before {
-  content: '🔍';
-  position: absolute;
-  left: 14px;
-  font-size: 1rem;
-  pointer-events: none;
+  content: '';
 }
 
 .clear-btn {

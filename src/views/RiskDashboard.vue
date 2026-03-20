@@ -20,6 +20,38 @@
       </div>
     </div>
 
+    <!-- 風控指標 -->
+    <div class="risk-metrics">
+      <h3>風控指標</h3>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">持倉集中度</div>
+          <div class="metric-value" :class="positionConcentration > 30 ? 'warning' : 'normal'">
+            {{ positionConcentration.toFixed(1) }}%
+          </div>
+          <div class="metric-hint">最大單一持倉比例</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">整體損益</div>
+          <div class="metric-value" :class="(paperStatus?.overall_pnl || 0) >= 0 ? 'profit' : 'loss'">
+            {{ (paperStatus?.overall_pnl || 0) >= 0 ? '+' : '' }}${{ (paperStatus?.overall_pnl || 0).toLocaleString() }}
+            <span class="metric-percent">({{ (paperStatus?.overall_pnl_pct || 0).toFixed(2) }}%)</span>
+          </div>
+          <div class="metric-hint">總資產變化</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">VIX 風險</div>
+          <div class="metric-value" :class="vixLevel.color">{{ vixLevel.label }}</div>
+          <div class="metric-hint">指數: {{ marketData?.markets?.find(m => m.type === 'VIX')?.value?.toFixed(2) || 'N/A' }}</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">總資產</div>
+          <div class="metric-value">${{ (paperStatus?.total_assets || 0).toLocaleString() }}</div>
+          <div class="metric-hint">帳戶總價值</div>
+        </div>
+      </div>
+    </div>
+
     <!-- 風控配置 -->
     <div class="config-section">
       <h3>風控配置</h3>
@@ -112,10 +144,35 @@ const config = ref({
 const positions = ref([])
 const riskLogs = ref([])
 const loading = ref(true)
+const paperStatus = ref(null)
+const marketData = ref(null)
+
+// 持倉集中度（最大單一持倉 / 總市值）
+const positionConcentration = computed(() => {
+  if (positions.value.length === 0) return 0
+  const maxPosition = Math.max(...positions.value.map(p => p.market_value || 0))
+  const totalMarketValue = positions.value.reduce((sum, p) => sum + (p.market_value || 0), 0)
+  return totalMarketValue > 0 ? (maxPosition / totalMarketValue) * 100 : 0
+})
+
+// VIX 風險等級
+const vixLevel = computed(() => {
+  const vix = marketData.value?.markets?.find(m => m.type === 'VIX')?.value
+  if (vix === undefined || vix === null) return { level: 'unknown', label: '無法取得', color: 'gray' }
+  if (vix < 15) return { level: 'low', label: '低風險', color: 'green' }
+  if (vix < 20) return { level: 'normal', label: '正常', color: 'blue' }
+  if (vix < 30) return { level: 'elevated', label: '偏高', color: 'orange' }
+  return { level: 'high', label: '高風險', color: 'red' }
+})
+
+// 實際總持倉上限（從 API 取得）
+const effectiveMaxPosition = computed(() => {
+  return paperStatus.value?.total_assets || config.value.max_total_position
+})
 
 const riskStatus = computed(() => {
   const totalValue = positions.value.reduce((sum, p) => sum + (p.market_value || 0), 0)
-  const usage = totalValue / config.value.max_total_position
+  const usage = totalValue / effectiveMaxPosition.value
   if (usage > 0.9) return 'danger'
   if (usage > 0.7) return 'warning'
   return 'safe'
@@ -123,11 +180,12 @@ const riskStatus = computed(() => {
 
 const riskMessage = computed(() => {
   const totalValue = positions.value.reduce((sum, p) => sum + (p.market_value || 0), 0)
-  const usage = (totalValue / config.value.max_total_position * 100).toFixed(0)
+  const usage = (totalValue / effectiveMaxPosition.value * 100).toFixed(1)
+  const totalAssets = paperStatus.value?.total_assets?.toLocaleString() || 'N/A'
   
-  if (riskStatus.value === 'safe') return `總持倉使用率 ${usage}%，風控狀態正常`
-  if (riskStatus.value === 'warning') return `總持倉使用率 ${usage}%，接近風控上限`
-  return `總持倉使用率 ${usage}%，已超過風控上限！`
+  if (riskStatus.value === 'safe') return `總持倉使用率 ${usage}%（相對於總資產 $${totalAssets}），風控狀態正常`
+  if (riskStatus.value === 'warning') return `總持倉使用率 ${usage}%（相對於總資產 $${totalAssets}），接近風控上限`
+  return `總持倉使用率 ${usage}%（相對於總資產 $${totalAssets}），已超過風控上限！`
 })
 
 const fetchData = async () => {
@@ -138,6 +196,22 @@ const fetchData = async () => {
     const posData = await posRes.json()
     if (posData.positions) {
       positions.value = posData.positions || []
+    }
+    
+    // 獲取帳戶狀態（總資產）
+    const statusRes = await fetch(`${API_URL}/paper/status`)
+    const statusData = await statusRes.json()
+    if (statusData.total_assets) {
+      paperStatus.value = statusData
+      // 自動調整風控上限為總資產的 80%
+      config.value.max_total_position = Math.round(statusData.total_assets * 0.8)
+    }
+    
+    // 獲取市場數據（VIX）
+    const marketRes = await fetch(`${API_URL}/market`)
+    const marketDataResult = await marketRes.json()
+    if (marketDataResult.markets) {
+      marketData.value = marketDataResult
     }
   } catch (err) {
     console.error('Fetch error:', err)
@@ -153,21 +227,22 @@ const checkRisk = () => {
 
 const getRiskLevel = (pos) => {
   const value = pos.market_value || 0
-  if (value > config.value.max_position_per_stock) return 'danger'
-  if (value > config.value.max_position_per_stock * 0.8) return 'warning'
+  const maxPerStock = config.value.max_position_per_stock
+  if (value > maxPerStock) return 'danger'
+  if (value > maxPerStock * 0.8) return 'warning'
   return 'safe'
 }
 
 const getRiskLabel = (pos) => {
   const value = pos.market_value || 0
-  if (value > config.value.max_position_per_stock) return '⚠️ 超限'
-  if (value > config.value.max_position_per_stock * 0.8) return '⚡ 接近上限'
+  const maxPerStock = config.value.max_position_per_stock
+  if (value > maxPerStock) return '⚠️ 超限'
+  if (value > maxPerStock * 0.8) return '⚡ 接近上限'
   return '✅ 正常'
 }
 
 const formatTime = (timestamp) => {
   if (!timestamp) return '-'
-  // 如果日期字符串没有时区信息，假设是台北时间 (UTC+8)
   let d = timestamp
   if (typeof timestamp === 'string' && !timestamp.includes('Z') && !timestamp.endsWith('+08:00')) {
     d = timestamp + '+08:00'

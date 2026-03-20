@@ -8,6 +8,34 @@
     <div v-else-if="dailySummaries.length === 0" class="empty">暫無回測數據</div>
     
     <div v-else class="backtests-content">
+      <!-- 摘要卡片 -->
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="summary-label">總報酬率</div>
+          <div class="summary-value" :class="totalReturn >= 0 ? 'profit' : 'loss'">
+            {{ totalReturn >= 0 ? '+' : '' }}{{ totalReturn.toFixed(2) }}%
+          </div>
+          <div class="summary-sub">vs 初始 $1,000,000</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">最大單日虧損</div>
+          <div class="summary-value loss">${{ formatNumber(maxDailyLoss) }}</div>
+          <div class="summary-sub">{{ maxDailyLossDate }}</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">近 7 天趨勢</div>
+          <div class="summary-value" :class="recentTrend >= 0 ? 'profit' : 'loss'">
+            {{ recentTrend >= 0 ? '↑' : '↓' }} {{ recentTrend >= 0 ? '+' : '' }}{{ recentTrend.toFixed(2) }}%
+          </div>
+          <div class="summary-sub">過去 7 個交易日</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">記錄天數</div>
+          <div class="summary-value neutral">{{ dailySummaries.length }}</div>
+          <div class="summary-sub">交易日</div>
+        </div>
+      </div>
+
       <!-- 每日結算列表 -->
       <div class="card">
         <div class="card-header">
@@ -49,12 +77,41 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1'
+const INITIAL_BALANCE = 1000000
 
 const dailySummaries = ref([])
 const loading = ref(true)
+
+const totalReturn = computed(() => {
+  if (!dailySummaries.value.length) return 0
+  const latest = dailySummaries.value[0]
+  return ((latest.total_value - INITIAL_BALANCE) / INITIAL_BALANCE) * 100
+})
+
+const maxDailyLoss = computed(() => {
+  if (!dailySummaries.value.length) return 0
+  return Math.min(...dailySummaries.value.map(s => Number(s.daily_pnl) || 0))
+})
+
+const maxDailyLossDate = computed(() => {
+  if (!dailySummaries.value.length) return ''
+  const minDay = dailySummaries.value.reduce((a, b) =>
+    (Number(a.daily_pnl) || 0) < (Number(b.daily_pnl) || 0) ? a : b
+  )
+  return minDay.date || ''
+})
+
+const recentTrend = computed(() => {
+  const data = dailySummaries.value
+  if (data.length < 2) return 0
+  const recent = data.slice(0, Math.min(7, data.length))
+  const latest = Number(recent[0]?.total_value) || 0
+  const oldest = Number(recent[recent.length - 1]?.total_value) || 1
+  return ((latest - oldest) / oldest) * 100
+})
 
 const formatNumber = (num) => {
   if (!num && num !== 0) return '0.00'
@@ -137,8 +194,43 @@ onMounted(() => {
   font-size: 0.8125rem;
 }
 
-.profit { color: #22c55e; }
-.loss { color: #ef4444; }
+.profit { color: var(--color-profit, #3fb950); }
+.loss { color: var(--color-loss, #f85149); }
+.neutral { color: var(--text-primary, #e6edf3); }
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.summary-card {
+  background: var(--bg-secondary, #161b22);
+  border: 1px solid var(--border-default, #30363d);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.summary-label {
+  font-size: 11px;
+  color: var(--text-secondary, #8b949e);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.summary-value {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  margin-bottom: 4px;
+}
+
+.summary-sub {
+  font-size: 11px;
+  color: var(--text-muted, #6e7681);
+}
 
 .loading, .empty {
   text-align: center;

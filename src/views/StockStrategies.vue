@@ -70,11 +70,23 @@ const error = ref(null)
 const searchQuery = ref('')
 
 const fetchApi = async (url, options = {}) => {
-  const response = await fetch(`${API_URL}${url}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options
-  })
-  return response.json()
+  try {
+    const response = await fetch(`${API_URL}${url}`, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options
+    })
+    // 檢查是否返回 HTML（伺服器錯誤頁面）
+    const contentType = response.headers.get('content-type')
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('伺服器回應格式錯誤，請確認 API 服務正常運行')
+    }
+    return response.json()
+  } catch (err) {
+    if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+      throw new Error('無法連線至 API 伺服器，請檢查網路連線')
+    }
+    throw err
+  }
 }
 
 const filteredStrategies = computed(() => {
@@ -124,16 +136,18 @@ const loadStrategies = async () => {
   loading.value = true
   error.value = null
   try {
-    const data = await fetchApi('/api/v1/stock-strategies')
-    if (data.status === 'ok') {
+    const data = await fetchApi('/stock-strategies')
+    if (data && data.strategies) {
+      strategies.value = data.strategies || []
+    } else if (data && data.status === 'ok') {
       strategies.value = data.strategies || []
     } else {
-      throw new Error(data.message || 'Failed to load strategies')
+      throw new Error(data?.message || '無法讀取策略數據')
     }
   } catch (e) {
-    error.value = e.message
-    console.showToast('Load strategies error:', e)
-    showToast('載入策略失敗，請稍後重試')
+    error.value = e.message || '載入策略失敗，請稍後重試'
+    console.error('Load strategies error:', e)
+    showToast(error.value)
   } finally {
     loading.value = false
   }
@@ -141,11 +155,14 @@ const loadStrategies = async () => {
 
 const refreshStrategies = async () => {
   loading.value = true
+  error.value = null
   try {
-    await fetchApi('/api/v1/stock-strategies/refresh', { method: 'POST' })
+    await fetchApi('/stock-strategies/refresh', { method: 'POST' })
     await loadStrategies()
+    showToast('策略已重新整理')
   } catch (e) {
     error.value = e.message
+    showToast('重新整理失敗')
   }
 }
 
