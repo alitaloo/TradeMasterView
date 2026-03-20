@@ -36,7 +36,13 @@
         </div>
 
         <div class="card">
-          <div class="card-header"><h2 class="card-title">📐 策略指標</h2></div>
+          <div class="card-header">
+            <h2 class="card-title">📐 策略指標</h2>
+            <div class="header-actions">
+              <button class="btn-xs" @click="selectedIndicators = indicators.map(i => i.value)">全選</button>
+              <button class="btn-xs" @click="selectedIndicators = []">清除</button>
+            </div>
+          </div>
           <div class="checkbox-group">
             <label v-for="ind in indicators" :key="ind.value" class="check-item">
               <input type="checkbox" :value="ind.value" v-model="selectedIndicators">
@@ -169,7 +175,7 @@ const PAGE_SIZE = 20
 const stockList = ref([])
 const selectedSymbols = ref([])
 const selectedTimeframes = ref(['1d'])
-const selectedIndicators = ref(['VolumeMA_Crossover', 'VolumePrice_Confirm'])
+const selectedIndicators = ref([])
 const launching = ref(false)
 
 // Run state
@@ -199,11 +205,25 @@ const timeframes = [
   { value: '5m', label: '5分鐘 (5m)' },
 ]
 
-const indicators = [
-  { value: 'VolumeMA_Crossover', label: 'VolumeMA Crossover', desc: '成交量MA交叉' },
-  { value: 'VolumePrice_Confirm', label: 'VolumePrice Confirm', desc: '量價確認' },
-  { value: 'VWAP_Reversion', label: 'VWAP Reversion', desc: 'VWAP均值回歸' },
-]
+const indicators = ref([])
+
+const loadIndicators = async () => {
+  try {
+    const res = await fetch(`${API_URL}/backtests/indicators`)
+    const data = await res.json()
+    indicators.value = data.indicators || []
+    // 預設全選
+    selectedIndicators.value = indicators.value.map(i => i.value)
+  } catch {
+    // fallback
+    indicators.value = [
+      { value: 'VolumeMA_Crossover', label: 'VolumeMA Crossover', desc: '成交量MA交叉' },
+      { value: 'VolumePrice_Confirm', label: 'VolumePrice Confirm', desc: '量價確認' },
+      { value: 'VWAP_Reversion', label: 'VWAP Reversion', desc: 'VWAP均值回歸' },
+    ]
+    selectedIndicators.value = indicators.value.map(i => i.value)
+  }
+}
 
 const totalCombinations = computed(() =>
   selectedSymbols.value.length * selectedTimeframes.value.length * selectedIndicators.value.length
@@ -343,7 +363,10 @@ const reset = () => {
   filteredResultData.value = []
 }
 
-onMounted(() => loadStocks())
+onMounted(() => {
+  loadStocks()
+  loadIndicators()
+})
 onUnmounted(() => {
   clearInterval(pollTimer)
   clearInterval(elapsedTimer)
