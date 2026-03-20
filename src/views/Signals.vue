@@ -1,10 +1,10 @@
 <template>
   <div class="signals-page">
     <div class="page-header">
-      <h1 class="page-title">📈 交易信號</h1>
+      <h1 class="page-title">交易信號</h1>
       <div class="header-actions">
         <FreshnessIndicator :timestamp="signalsTimestamp" />
-        <button class="btn btn-primary" @click="fetchSignals">
+        <button class="btn btn-secondary" @click="fetchSignals">
           <span>🔄</span> 刷新
         </button>
       </div>
@@ -44,14 +44,14 @@
 
     <!-- 篩選 -->
     <div class="filters">
-      <select v-model="filters.status" @change="currentPage = 1; fetchSignals()">
+      <select v-model="filters.status" @change="currentPage = 1; fetchSignals()" class="select">
         <option value="">全部狀態</option>
         <option value="PENDING">待處理</option>
         <option value="SENT">已發送</option>
         <option value="IGNORED">已忽略</option>
         <option value="CANCELLED">已取消</option>
       </select>
-      <input v-model="filters.symbol" placeholder="股票代號" @input="currentPage = 1; fetchSignals()">
+      <input v-model="filters.symbol" placeholder="股票代號" class="input" @input="currentPage = 1; fetchSignals()">
     </div>
 
     <!-- 分頁 -->
@@ -109,12 +109,12 @@
                 {{ signal.signal_type }}
               </span>
             </td>
-            <td>{{ signal.price || '-' }}</td>
-            <td>{{ (signal.confidence * 100).toFixed(0) || 0 }}%</td>
+            <td class="number">{{ signal.price || '-' }}</td>
+            <td class="number">{{ (signal.confidence * 100).toFixed(0) || 0 }}%</td>
             <td>
               <span :class="['status', signal.status]">{{ signal.status }}</span>
             </td>
-            <td>{{ formatTime(signal.created_at) }}</td>
+            <td class="time">{{ formatTime(signal.created_at) }}</td>
           </tr>
         </tbody>
       </table>
@@ -202,64 +202,65 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-5);
 }
 
 .page-header .header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .page-title {
-  font-size: 1.5rem;
+  font-size: var(--text-xl);
   font-weight: 700;
 }
 
 .summary-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
 }
 
 .summary-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
 }
 
-.summary-card.pending { border-left: 4px solid #f59e0b; }
-.summary-card.sent { border-left: 4px solid #3b82f6; }
-.summary-card.ignored { border-left: 4px solid #6b7280; }
-.summary-card.cancelled { border-left: 4px solid #ef4444; }
+.summary-card.pending { border-left: 3px solid var(--color-warning); }
+.summary-card.sent { border-left: 3px solid var(--color-accent); }
+.summary-card.ignored { border-left: 3px solid var(--color-hold); }
+.summary-card.cancelled { border-left: 3px solid var(--color-loss); }
 
-.card-icon { font-size: 1.5rem; }
-.card-title { font-size: 0.875rem; color: var(--color-text-secondary); }
-.card-value { font-size: 1.5rem; font-weight: 700; }
+.card-icon { font-size: var(--text-xl); }
+.card-title { font-size: var(--text-sm); color: var(--text-secondary); }
+.card-value { font-size: var(--text-2xl); font-weight: 700; font-family: var(--font-mono); }
 
 .filters {
   display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
 }
 
 .filters select, .filters input {
-  padding: 8px 12px;
-  border: 1px solid var(--color-border);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
 }
 
 .signals-table {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -269,67 +270,98 @@ table {
 }
 
 th, td {
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   text-align: left;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border-muted);
 }
 
 th {
-  background: var(--color-bg-tertiary);
+  background: var(--bg-tertiary);
   font-weight: 600;
-  font-size: 0.8125rem;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.symbol { font-weight: 600; }
+.symbol { 
+  font-weight: 600; 
+  font-family: var(--font-mono);
+}
+
+.number {
+  font-family: var(--font-mono);
+}
+
+.time {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
 
 .signal-type {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
   font-weight: 500;
 }
 
-.signal-type.BUY { background: #22c55e20; color: #22c55e; }
-.signal-type.SELL { background: #ef444420; color: #ef4444; }
-
-.status {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
+.signal-type.BUY { 
+  background: rgba(31, 111, 235, 0.2); 
+  color: var(--color-buy); 
 }
 
-.status.PENDING { background: #f59e0b20; color: #f59e0b; }
-.status.SENT { background: #3b82f620; color: #3b82f6; }
-.status.IGNORED { background: #6b728020; color: #6b7280; }
-.status.CANCELLED { background: #ef444420; color: #ef4444; }
+.signal-type.SELL { 
+  background: rgba(218, 54, 51, 0.2); 
+  color: var(--color-sell); 
+}
+
+.signal-type.HOLD { 
+  background: rgba(110, 118, 129, 0.2); 
+  color: var(--color-hold); 
+}
+
+.status {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+}
+
+.status.PENDING { background: rgba(210, 153, 34, 0.2); color: var(--color-warning); }
+.status.SENT { background: rgba(56, 139, 253, 0.2); color: var(--color-accent); }
+.status.IGNORED { background: rgba(110, 118, 129, 0.2); color: var(--color-hold); }
+.status.CANCELLED { background: rgba(248, 81, 73, 0.2); color: var(--color-loss); }
 
 .loading, .empty {
   text-align: center;
-  padding: 40px;
-  color: var(--color-text-muted);
+  padding: var(--space-6);
+  color: var(--text-muted);
 }
 
 .pagination {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 12px;
-  margin-top: 24px;
-  padding: 16px;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  padding: var(--space-4);
 }
 
 .page-btn {
-  padding: 8px 12px;
-  border: 1px solid var(--color-border);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s;
+  font-size: var(--text-sm);
 }
 
 .page-btn:hover:not(:disabled) {
-  background: var(--color-primary);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
   color: white;
 }
 
@@ -339,42 +371,48 @@ th {
 }
 
 .page-info {
-  padding: 8px 16px;
-  color: var(--color-text-secondary);
-  font-size: 0.875rem;
+  padding: var(--space-2) var(--space-4);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
 }
 
 .freshness-indicator {
-  font-size: 0.75rem;
-  padding: 4px 8px;
-  border-radius: 4px;
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .freshness-indicator.fresh {
-  background: rgba(78, 204, 163, 0.2);
-  color: var(--color-success);
+  background: rgba(63, 185, 80, 0.2);
+  color: var(--color-profit);
 }
 
 .freshness-indicator.normal {
-  background: rgba(78, 204, 163, 0.1);
-  color: var(--color-success);
+  background: rgba(63, 185, 80, 0.1);
+  color: var(--color-profit);
 }
 
 .freshness-indicator.stale {
-  background: rgba(255, 193, 7, 0.2);
-  color: #ffc107;
+  background: rgba(210, 153, 34, 0.2);
+  color: var(--color-warning);
 }
 
 .freshness-indicator.outdated {
-  background: rgba(255, 71, 87, 0.2);
-  color: var(--color-danger);
+  background: rgba(248, 81, 73, 0.2);
+  color: var(--color-loss);
 }
 
 .freshness-indicator.unknown {
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-muted);
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+  .summary-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 </style>

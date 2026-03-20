@@ -26,7 +26,7 @@ import ToastContainer from './components/ToastContainer.vue'
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #0f0f23;
+  background: var(--bg-primary);
 }
 
 .app-content {
@@ -37,9 +37,9 @@ import ToastContainer from './components/ToastContainer.vue'
 
 .main-content {
   flex: 1;
-  padding: 24px;
+  padding: var(--space-6);
   overflow-y: auto;
-  background: linear-gradient(180deg, #0f0f23 0%, #1a1a3e 100%);
+  background: var(--bg-primary);
 }
 
 /* 页面切换动画 */

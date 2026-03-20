@@ -1,5 +1,9 @@
 <template>
   <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="brand">TradeMaster</span>
+    </div>
+    
     <nav class="nav-menu">
       <router-link 
         v-for="item in menuItems" 
@@ -15,11 +19,9 @@
     </nav>
     
     <div class="sidebar-footer">
-      <div class="market-status">
-        <span class="market-label">市場狀態</span>
-        <span class="market-value" :class="marketStatus.class">
-          {{ marketStatus.text }}
-        </span>
+      <div class="connection-status">
+        <span class="status-dot" :class="connectionStatus"></span>
+        <span class="status-label">{{ connectionLabel }}</span>
       </div>
     </div>
   </aside>
@@ -43,64 +45,94 @@ const menuItems = [
   { path: '/paper-trading', label: '模擬交易', icon: '📈' }
 ]
 
-// 使用統一的 datetime 工具，正確處理 DST 與週末
+// 使用统一的 datetime 工具，正确处理 DST 与周末
 const marketStatus = computed(() => getUSMarketStatus())
+
+const connectionStatus = computed(() => {
+  const status = marketStatus.value
+  if (status.class === 'open') return 'online'
+  if (status.class === 'pre') return 'pre-market'
+  return 'offline'
+})
+
+const connectionLabel = computed(() => {
+  const status = marketStatus.value
+  return status.text
+})
 </script>
 
 <style scoped>
 .sidebar {
-  width: 240px;
-  background: var(--color-bg-secondary);
-  border-right: 1px solid var(--color-border);
+  width: var(--sidebar-width);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border-default);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  height: 100%;
+}
+
+.sidebar-header {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.brand {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
 }
 
 .nav-menu {
   flex: 1;
-  padding: 16px 12px;
+  padding: var(--space-3) var(--space-2);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
+  overflow-y: auto;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   text-decoration: none;
   transition: all var(--transition-fast);
+  border-left: 2px solid transparent;
+  margin-left: -2px;
 }
 
 .nav-item:hover {
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .nav-item.active {
-  background: rgba(233, 69, 96, 0.15);
+  background: rgba(56, 139, 253, 0.1);
   color: var(--color-accent);
+  border-left-color: var(--color-accent);
 }
 
 .nav-icon {
-  font-size: 1.25rem;
-  width: 24px;
+  font-size: var(--text-base);
+  width: 20px;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .nav-text {
   flex: 1;
-  font-size: 0.9375rem;
+  font-size: var(--text-sm);
   font-weight: 500;
 }
 
 .nav-badge {
-  padding: 2px 8px;
-  font-size: 0.75rem;
+  padding: 2px 6px;
+  font-size: var(--text-xs);
   font-weight: 600;
   background: var(--color-accent);
   color: white;
@@ -108,38 +140,42 @@ const marketStatus = computed(() => getUSMarketStatus())
 }
 
 .sidebar-footer {
-  padding: 16px;
-  border-top: 1px solid var(--color-border);
+  padding: var(--space-3);
+  border-top: 1px solid var(--border-default);
 }
 
-.market-status {
+.connection-status {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px;
-  background: var(--color-bg-tertiary);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-tertiary);
   border-radius: var(--radius-md);
 }
 
-.market-label {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
-.market-value {
-  font-size: 0.875rem;
-  font-weight: 600;
+.status-dot.online {
+  background: var(--color-profit);
+  box-shadow: 0 0 6px var(--color-profit);
 }
 
-.market-value.open {
-  color: var(--color-success);
+.status-dot.pre-market {
+  background: var(--color-warning);
+  box-shadow: 0 0 6px var(--color-warning);
 }
 
-.market-value.pre {
-  color: var(--color-warning);
+.status-dot.offline {
+  background: var(--text-muted);
 }
 
-.market-value.closed {
-  color: var(--color-text-muted);
+.status-label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
 }
 </style>
