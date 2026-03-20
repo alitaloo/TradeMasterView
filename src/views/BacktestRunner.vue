@@ -37,18 +37,35 @@
 
         <div class="card">
           <div class="card-header">
-            <h2 class="card-title">📐 策略指標</h2>
+            <h2 class="card-title">🧠 選擇策略</h2>
             <div class="header-actions">
-              <button class="btn-xs" @click="selectedIndicators = indicators.map(i => i.value)">全選</button>
+              <button class="btn-xs" @click="selectedIndicators = strategies.map(s => s.value)">全選策略</button>
+              <button class="btn-xs" @click="selectedIndicators = baseIndicators.map(i => i.value)">只選指標</button>
               <button class="btn-xs" @click="selectedIndicators = []">清除</button>
             </div>
           </div>
-          <div class="checkbox-group">
-            <label v-for="ind in indicators" :key="ind.value" class="check-item">
+          <!-- 搜尋 -->
+          <div class="strategy-search">
+            <input v-model="strategySearch" type="text" placeholder="🔍 搜尋策略名稱..." class="search-input">
+          </div>
+          <!-- 策略分組 -->
+          <div class="strategy-tabs">
+            <button :class="['stab', strategyTab==='strategy'?'active':'']" @click="strategyTab='strategy'">
+              策略 ({{ strategies.length }})
+            </button>
+            <button :class="['stab', strategyTab==='indicator'?'active':'']" @click="strategyTab='indicator'">
+              基礎指標 ({{ baseIndicators.length }})
+            </button>
+          </div>
+          <div class="strategy-list">
+            <label v-for="ind in filteredOptions" :key="ind.value" class="check-item">
               <input type="checkbox" :value="ind.value" v-model="selectedIndicators">
-              <span class="indicator-name">{{ ind.label }}</span>
-              <span class="indicator-desc">{{ ind.desc }}</span>
+              <div class="ind-info">
+                <span class="indicator-name">{{ ind.label }}</span>
+                <span class="indicator-desc">{{ ind.desc }}</span>
+              </div>
             </label>
+            <div v-if="filteredOptions.length === 0" class="no-match">無符合結果</div>
           </div>
         </div>
 
@@ -206,6 +223,18 @@ const timeframes = [
 ]
 
 const indicators = ref([])
+const strategySearch = ref('')
+const strategyTab = ref('strategy')
+
+const strategies = computed(() => indicators.value.filter(i => i.type === 'strategy'))
+const baseIndicators = computed(() => indicators.value.filter(i => i.type === 'indicator' || !i.type))
+
+const filteredOptions = computed(() => {
+  const list = strategyTab.value === 'strategy' ? strategies.value : baseIndicators.value
+  if (!strategySearch.value) return list
+  const q = strategySearch.value.toLowerCase()
+  return list.filter(i => i.label.toLowerCase().includes(q) || (i.desc||'').toLowerCase().includes(q))
+})
 
 const loadIndicators = async () => {
   try {
@@ -395,10 +424,20 @@ onUnmounted(() => {
 .stock-name { font-size: 13px; font-weight: 600; font-family: 'SF Mono', monospace; }
 
 .checkbox-group { padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; }
-.check-item { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-.check-item input { accent-color: #388bfd; }
+.check-item { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; padding: 4px 14px; }
+.check-item:hover { background: #21262d22; }
+.check-item input { accent-color: #388bfd; margin-top: 2px; flex-shrink: 0; }
+.ind-info { display: flex; flex-direction: column; }
 .indicator-name { font-size: 13px; font-weight: 600; }
 .indicator-desc { font-size: 11px; color: #6e7681; }
+
+.strategy-search { padding: 8px 12px; border-bottom: 1px solid #21262d; }
+.search-input { width: 100%; background: #0d1117; border: 1px solid #30363d; color: #e6edf3; padding: 6px 10px; border-radius: 4px; font-size: 12px; }
+.strategy-tabs { display: flex; border-bottom: 1px solid #21262d; }
+.stab { flex: 1; padding: 8px; background: none; border: none; color: #8b949e; font-size: 12px; cursor: pointer; border-bottom: 2px solid transparent; }
+.stab.active { color: #388bfd; border-bottom-color: #388bfd; }
+.strategy-list { max-height: 320px; overflow-y: auto; padding: 4px 0; }
+.no-match { padding: 12px 14px; font-size: 12px; color: #6e7681; text-align: center; }
 
 .launch-card { padding: 14px; }
 .estimate { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
