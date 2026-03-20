@@ -597,40 +597,56 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 壓縮表格行高 */
+.table th, .table td {
+  padding: 6px 12px !important;
+}
+
+/* 壓縮頁面 header */
+.page-header {
+  margin-bottom: 12px !important;
+}
+
+/* 壓縮卡片 padding */
+.card-header {
+  padding: 8px 14px !important;
+}
+
+/* Tab1 摘要卡片高度壓縮 */
 .backtest-overview {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 .overview-stat {
   background: var(--bg-secondary, #161b22);
   border: 1px solid var(--border-default, #30363d);
   border-radius: 6px;
-  padding: 12px 14px;
+  padding: 8px 10px;
   text-align: center;
 }
-.ov-label { font-size: 11px; color: #6e7681; margin-bottom: 6px; }
-.ov-value { font-size: 22px; font-weight: 700; font-family: 'SF Mono', monospace; color: #e6edf3; }
+.ov-label { font-size: 10px; color: #6e7681; margin-bottom: 4px; }
+.ov-value { font-size: 18px; font-weight: 700; font-family: 'SF Mono', monospace; color: #e6edf3; }
 
 .top3-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 .top3-card {
   background: var(--bg-secondary, #161b22);
   border: 1px solid var(--border-default, #30363d);
   border-radius: 6px;
-  padding: 14px 16px;
+  padding: 10px 12px;
   position: relative;
 }
-.top3-rank { position: absolute; top: 10px; right: 12px; font-size: 18px; font-weight: 800; color: #30363d; }
-.top3-symbol { font-size: 20px; font-weight: 700; color: #e6edf3; margin-bottom: 4px; }
-.top3-indicator { font-size: 12px; color: #8b949e; margin-bottom: 10px; }
-.top3-metrics { display: flex; gap: 10px; flex-wrap: wrap; }
-.top3-metrics span { font-size: 12px; }
+.top3-rank { position: absolute; top: 8px; right: 10px; font-size: 16px; font-weight: 800; color: #30363d; }
+.top3-symbol { font-size: 18px; font-weight: 700; color: #e6edf3; margin-bottom: 4px; }
+.top3-indicator { font-size: 11px; color: #8b949e; margin-bottom: 8px; }
+.top3-metrics { display: flex; gap: 8px; flex-wrap: wrap; }
+.top3-metrics span { font-size: 11px; }
 .muted { color: #8b949e; }
 
 .profit { color: #3fb950; }
@@ -641,7 +657,7 @@ onMounted(() => {
 }
 
 .page-header {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .page-title {
@@ -653,19 +669,19 @@ onMounted(() => {
 .tabs {
   display: flex;
   gap: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   border-bottom: 1px solid var(--color-border);
-  padding-bottom: 12px;
+  padding-bottom: 8px;
 }
 
 .tab {
-  padding: 10px 20px;
+  padding: 8px 16px;
   background: transparent;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   transition: all var(--transition-fast);
 }
 
@@ -686,11 +702,11 @@ onMounted(() => {
 /* 篩選器 */
 .filters-bar {
   display: flex;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
   background: var(--color-bg-card);
-  padding: 16px;
+  padding: 12px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
 }
@@ -795,7 +811,7 @@ onMounted(() => {
 .summary-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  gap: 8px;
   margin-bottom: 8px;
 }
 
@@ -803,22 +819,22 @@ onMounted(() => {
   background: var(--bg-secondary, #161b22);
   border: 1px solid var(--border-default, #30363d);
   border-radius: 6px;
-  padding: 16px;
+  padding: 10px 12px;
 }
 
 .summary-label {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-secondary, #8b949e);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .summary-value {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 700;
   font-family: 'SF Mono', 'Fira Code', monospace;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .summary-sub {

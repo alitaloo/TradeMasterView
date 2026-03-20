@@ -424,12 +424,27 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 壓縮表格行高 */
+.table th, .table td {
+  padding: 6px 12px !important;
+}
+
+/* 壓縮頁面 header */
+.page-header {
+  margin-bottom: 12px !important;
+}
+
+/* 壓縮卡片 padding */
+.card-header {
+  padding: 8px 14px !important;
+}
+
 .runner-page { animation: fadeIn 0.3s ease; }
-.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .page-title { font-size: 1.5rem; font-weight: 700; margin: 0; }
 
-.setup-grid { display: grid; grid-template-columns: 1fr 320px; gap: 16px; }
-.config-col { display: flex; flex-direction: column; gap: 12px; }
+.setup-grid { display: grid; grid-template-columns: 1fr 320px; gap: 12px; }
+.config-col { display: flex; flex-direction: column; gap: 8px; max-height: 500px; overflow-y: auto; }
 
 .card { background: var(--bg-secondary, #161b22); border: 1px solid var(--border-default, #30363d); border-radius: 6px; overflow: hidden; margin-bottom: 12px; }
 .card-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #30363d; }
@@ -438,8 +453,8 @@ onUnmounted(() => {
 .btn-xs { font-size: 11px; padding: 2px 8px; border: 1px solid #30363d; background: transparent; color: #8b949e; border-radius: 4px; cursor: pointer; }
 .btn-xs:hover { color: #e6edf3; border-color: #8b949e; }
 
-.stock-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 12px; }
-.stock-item { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 4px; cursor: pointer; border: 1px solid transparent; transition: all 0.1s; }
+.stock-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px; max-height: 400px; overflow-y: auto; }
+.stock-item { display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: 4px; cursor: pointer; border: 1px solid transparent; transition: all 0.1s; }
 .stock-item:hover { background: #21262d; border-color: #30363d; }
 .stock-item input { cursor: pointer; accent-color: #388bfd; }
 .stock-name { font-size: 13px; font-weight: 600; font-family: 'SF Mono', monospace; }
@@ -464,7 +479,7 @@ onUnmounted(() => {
 .strategy-tabs { display: flex; border-bottom: 1px solid #21262d; }
 .stab { flex: 1; padding: 8px; background: none; border: none; color: #8b949e; font-size: 12px; cursor: pointer; border-bottom: 2px solid transparent; }
 .stab.active { color: #388bfd; border-bottom-color: #388bfd; }
-.strategy-list { max-height: 320px; overflow-y: auto; padding: 4px 0; }
+.strategy-list { max-height: 250px; overflow-y: auto; padding: 4px 0; }
 .no-match { padding: 12px 14px; font-size: 12px; color: #6e7681; text-align: center; }
 
 .launch-card { padding: 14px; }

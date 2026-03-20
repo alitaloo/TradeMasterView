@@ -348,6 +348,21 @@ onMounted(fetchStrategies)
 </script>
 
 <style scoped>
+/* 壓縮表格行高 */
+.table th, .table td {
+  padding: 6px 12px !important;
+}
+
+/* 壓縮頁面 header */
+.page-header {
+  margin-bottom: 12px !important;
+}
+
+/* 壓縮卡片 padding */
+.card-header {
+  padding: 8px 14px !important;
+}
+
 /* 強制所有文字為白色 */
 .strategies-page,
 .strategies-page * {
@@ -362,7 +377,7 @@ onMounted(fetchStrategies)
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 12px;
 }
 
 .page-title {
@@ -376,7 +391,7 @@ onMounted(fetchStrategies)
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   position: relative;
 }
 
@@ -436,15 +451,15 @@ onMounted(fetchStrategies)
 
 .strategies-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
 }
 
 .strategy-card {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: 12px;
   transition: all var(--transition-fast);
 }
 
@@ -460,7 +475,7 @@ onMounted(fetchStrategies)
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .strategy-name {

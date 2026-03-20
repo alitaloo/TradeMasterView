@@ -2,19 +2,17 @@
   <div class="stock-strategies-page">
     <div class="page-header">
       <h1 class="page-title">🎯 股票策略配置</h1>
-      <button class="btn btn-primary" @click="refreshStrategies">
-        <span>🔄</span> 重新回測
-      </button>
-    </div>
-    
-    <!-- 搜尋框 -->
-    <div class="search-box">
-      <input 
-        v-model="searchQuery" 
-        type="text" 
-        placeholder="🔍 搜尋股票代碼..."
-        class="search-input"
-      >
+      <div class="header-actions">
+        <input 
+          v-model="searchQuery" 
+          type="text" 
+          placeholder="🔍 搜尋股票代碼..."
+          class="search-input"
+        >
+        <button class="btn btn-primary" @click="refreshStrategies">
+          <span>🔄</span> 重新回測
+        </button>
+      </div>
     </div>
     
     <div v-if="loading" class="loading">載入中...</div>
@@ -172,15 +170,45 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 壓縮表格行高 */
+.table th, .table td {
+  padding: 6px 12px !important;
+}
+
+/* 壓縮頁面 header */
+.page-header {
+  margin-bottom: 12px !important;
+}
+
+/* 壓縮卡片 padding */
+.card-header {
+  padding: 8px 14px !important;
+}
+
 .stock-strategies-page {
-  padding: 24px;
+  padding: 16px;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 12px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.search-input {
+  width: 200px;
+  padding: 6px 12px;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  font-size: 13px;
+  background: white;
 }
 
 .page-title {
@@ -208,11 +236,6 @@ onMounted(() => {
 
 .btn-primary:hover {
   background: #4338CA;
-}
-
-.search-box {
-  position: relative;
-  margin-bottom: 24px;
 }
 
 .search-input {
@@ -249,9 +272,10 @@ onMounted(() => {
 
 .strategies-table th,
 .strategies-table td {
-  padding: 14px 16px;
+  padding: 8px 12px !important;
   text-align: left;
   border-bottom: 1px solid #E5E7EB;
+  height: 36px;
 }
 
 .strategies-table th {

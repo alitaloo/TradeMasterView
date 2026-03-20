@@ -277,6 +277,21 @@ onMounted(fetchStocks)
 </script>
 
 <style scoped>
+/* 壓縮表格行高 */
+.table th, .table td {
+  padding: 6px 12px !important;
+}
+
+/* 壓縮頁面 header */
+.page-header {
+  margin-bottom: 12px !important;
+}
+
+/* 壓縮卡片 padding */
+.card-header {
+  padding: 8px 14px !important;
+}
+
 .stocks-page {
   animation: fadeIn 0.3s ease;
 }
@@ -285,7 +300,7 @@ onMounted(fetchStocks)
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 12px;
 }
 
 .page-title {
@@ -296,16 +311,16 @@ onMounted(fetchStocks)
 
 .summary-cards {
   display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .summary-card {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px;
+  gap: 12px;
+  padding: 12px;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);

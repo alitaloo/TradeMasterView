@@ -150,7 +150,7 @@ const klineData = ref([])
 
 // 分頁相關
 const currentPage = ref(1)
-const pageSize = ref(50)
+const pageSize = ref(15)
 
 // 計算分頁數據
 const totalPages = computed(() => Math.ceil(klineData.value.length / pageSize.value))
@@ -378,8 +378,23 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 壓縮表格行高 */
+.table th, .table td {
+  padding: 6px 12px !important;
+}
+
+/* 壓縮頁面 header */
+.page-header {
+  margin-bottom: 12px !important;
+}
+
+/* 壓縮卡片 padding */
+.card-header {
+  padding: 8px 14px !important;
+}
+
 .realtime-page {
-  padding: 20px;
+  padding: 12px;
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -388,7 +403,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .page-header h1 {
@@ -575,7 +590,7 @@ onMounted(() => {
 .kline-item {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding: 8px 12px;
   border-bottom: 1px solid #2d2d5a;
   transition: background 0.2s;
 }

@@ -7,22 +7,27 @@
       </button>
     </div>
 
-    <!-- 統計圖表區 -->
-    <div class="charts-row" v-if="orders.length > 0">
+    <!-- 統計圖表區 - 可收合 -->
+    <div class="charts-toggle" v-if="orders.length > 0">
+      <button class="btn-toggle" @click="showCharts = !showCharts">
+        {{ showCharts ? '▲ 隱藏統計' : '▼ 顯示統計' }}
+      </button>
+    </div>
+    <div class="charts-row" v-if="orders.length > 0 && showCharts">
       <!-- 狀態分佈 -->
       <div class="chart-card">
         <div class="chart-title">訂單狀態</div>
-        <canvas ref="statusChartRef" height="160"></canvas>
+        <canvas ref="statusChartRef" height="120"></canvas>
       </div>
       <!-- 各股票交易量 -->
       <div class="chart-card">
         <div class="chart-title">各股票成交筆數</div>
-        <canvas ref="symbolChartRef" height="160"></canvas>
+        <canvas ref="symbolChartRef" height="120"></canvas>
       </div>
       <!-- 買賣比例 -->
       <div class="chart-card">
         <div class="chart-title">買入 vs 賣出</div>
-        <canvas ref="typeChartRef" height="160"></canvas>
+        <canvas ref="typeChartRef" height="120"></canvas>
       </div>
       <!-- 統計摘要 -->
       <div class="chart-card stats-card">
@@ -156,6 +161,7 @@ let statusChart = null, symbolChart = null, typeChart = null
 
 const orders = ref([])
 const loading = ref(true)
+const showCharts = ref(false)
 const filters = ref({
   status: '',
   symbol: ''
@@ -332,17 +338,52 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 壓縮表格行高 */
+.table th, .table td {
+  padding: 6px 12px !important;
+}
+
+/* 壓縮頁面 header */
+.page-header {
+  margin-bottom: 12px !important;
+}
+
+/* 壓縮卡片 padding */
+.card-header {
+  padding: 8px 14px !important;
+}
+
+/* 可收合圖表 toggle */
+.charts-toggle {
+  margin-bottom: 8px;
+}
+
+.btn-toggle {
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.btn-toggle:hover {
+  background: var(--color-bg-secondary);
+}
+
 .charts-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 8px;
+  margin-bottom: 12px;
+  max-height: 150px;
 }
 .chart-card {
   background: var(--bg-secondary, #161b22);
   border: 1px solid var(--border-default, #30363d);
   border-radius: 6px;
-  padding: 14px;
+  padding: 8px;
 }
 .chart-title {
   font-size: 12px;
@@ -353,7 +394,7 @@ onMounted(() => {
   margin-bottom: 10px;
 }
 .stats-card { display: flex; flex-direction: column; justify-content: center; }
-.stat-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #21262d; }
+.stat-row { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; border-bottom: 1px solid #21262d; }
 .stat-row:last-child { border-bottom: none; }
 .stat-label { font-size: 12px; color: #8b949e; }
 .stat-value { font-size: 14px; font-weight: 700; font-family: 'SF Mono', monospace; color: #e6edf3; }
@@ -411,8 +452,8 @@ onMounted(() => {
 
 .filters {
   display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .filters select, .filters input {
@@ -436,7 +477,7 @@ table {
 }
 
 th, td {
-  padding: 12px 16px;
+  padding: 6px 12px !important;
   text-align: left;
   border-bottom: 1px solid var(--color-border);
 }

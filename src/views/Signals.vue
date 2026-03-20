@@ -10,36 +10,12 @@
       </div>
     </div>
 
-    <!-- 摘要卡片 -->
-    <div class="summary-cards">
-      <div class="summary-card pending">
-        <div class="card-icon">⏳</div>
-        <div class="card-content">
-          <div class="card-title">待處理</div>
-          <div class="card-value">{{ summary.PENDING || 0 }}</div>
-        </div>
-      </div>
-      <div class="summary-card sent">
-        <div class="card-icon">📤</div>
-        <div class="card-content">
-          <div class="card-title">已發送</div>
-          <div class="card-value">{{ summary.SENT || 0 }}</div>
-        </div>
-      </div>
-      <div class="summary-card ignored">
-        <div class="card-icon">⏭️</div>
-        <div class="card-content">
-          <div class="card-title">已忽略</div>
-          <div class="card-value">{{ summary.IGNORED || 0 }}</div>
-        </div>
-      </div>
-      <div class="summary-card cancelled">
-        <div class="card-icon">❌</div>
-        <div class="card-content">
-          <div class="card-title">已取消</div>
-          <div class="card-value">{{ summary.CANCELLED || 0 }}</div>
-        </div>
-      </div>
+    <!-- 摘要 Badge - 一行排列 -->
+    <div class="summary-badges">
+      <span class="badge pending">⏳ 待處理: {{ summary.PENDING || 0 }}</span>
+      <span class="badge sent">📤 已發送: {{ summary.SENT || 0 }}</span>
+      <span class="badge ignored">⏭️ 已忽略: {{ summary.IGNORED || 0 }}</span>
+      <span class="badge cancelled">❌ 已取消: {{ summary.CANCELLED || 0 }}</span>
     </div>
 
     <!-- 篩選 -->
@@ -194,6 +170,46 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 壓縮表格行高 */
+.table th, .table td {
+  padding: 6px 12px !important;
+}
+
+/* 壓縮頁面 header */
+.page-header {
+  margin-bottom: 12px !important;
+}
+
+/* 壓縮卡片 padding */
+.card-header {
+  padding: 8px 14px !important;
+}
+
+/* 摘要 Badge 一行排列 */
+.summary-badges {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+}
+
+.badge.pending { color: var(--color-warning); border-color: var(--color-warning); }
+.badge.sent { color: var(--color-accent); border-color: var(--color-accent); }
+.badge.ignored { color: var(--color-hold); border-color: var(--color-hold); }
+.badge.cancelled { color: var(--color-loss); border-color: var(--color-loss); }
+
 .signals-page {
   animation: fadeIn 0.3s ease;
 }
@@ -202,7 +218,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-5);
+  margin-bottom: 12px;
 }
 
 .page-header .header-actions {
@@ -244,8 +260,8 @@ onMounted(() => {
 
 .filters {
   display: flex;
-  gap: var(--space-3);
-  margin-bottom: var(--space-5);
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .filters select, .filters input {
@@ -270,7 +286,7 @@ table {
 }
 
 th, td {
-  padding: var(--space-3) var(--space-4);
+  padding: 6px 12px !important;
   text-align: left;
   border-bottom: 1px solid var(--border-muted);
 }

@@ -183,11 +183,26 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 壓縮表格行高 */
+.table th, .table td {
+  padding: 6px 12px !important;
+}
+
+/* 壓縮頁面 header */
+.page-header {
+  margin-bottom: 12px !important;
+}
+
+/* 壓縮卡片 padding */
+.card-header {
+  padding: 8px 14px !important;
+}
+
 .paper-trading {
   animation: fadeIn 0.3s ease;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
   height: 100%;
 }
 
@@ -196,6 +211,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
+  margin-bottom: 8px;
 }
 
 .page-title {
@@ -229,7 +245,7 @@ onMounted(() => {
 .stats-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-3);
+  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -237,10 +253,10 @@ onMounted(() => {
   background: var(--bg-secondary);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  padding: var(--space-4);
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 4px;
 }
 
 .stat-label {
@@ -273,7 +289,7 @@ onMounted(() => {
 .content-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-4);
+  gap: 12px;
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -320,7 +336,7 @@ onMounted(() => {
 
 .data-table th,
 .data-table td {
-  padding: var(--space-2) var(--space-3);
+  padding: 6px 10px !important;
   text-align: left;
   border-bottom: 1px solid var(--border-muted);
 }
