@@ -118,6 +118,50 @@
       </div>
     </div>
 
+    <!-- 📰 新聞 + ⚙️ 設定（2欄並排）-->
+    <div class="news-settings-row">
+    <!-- 📰 市場新聞 -->
+    <div class="news-section">
+      <div class="news-header">
+        <h3>📰 市場新聞</h3>
+        <div class="news-filters">
+          <select v-model="newsFilter.symbol" @change="fetchNews" class="news-select">
+            <option value="">全部股票</option>
+            <option v-for="sym in watchlistSymbols" :key="sym" :value="sym">{{ sym }}</option>
+          </select>
+          <select v-model="newsFilter.sentiment" @change="fetchNews" class="news-select">
+            <option value="">全部情緒</option>
+            <option value="positive">📈 正面</option>
+            <option value="negative">📉 負面</option>
+            <option value="neutral">➖ 中性</option>
+          </select>
+          <button @click="fetchNews" class="btn-refresh-news">🔄</button>
+        </div>
+      </div>
+      <div v-if="newsLoading" class="loading">載入中...</div>
+      <div v-else-if="newsList.length === 0" class="empty-news">暫無新聞</div>
+      <div v-else class="news-list">
+        <a
+          v-for="item in newsList"
+          :key="item.id"
+          :href="item.url"
+          target="_blank"
+          class="news-item"
+          :class="item.sentiment"
+        >
+          <div class="news-meta">
+            <span class="news-symbol">{{ item.symbol }}</span>
+            <span class="news-sentiment" :class="item.sentiment">
+              {{ item.sentiment === 'positive' ? '📈' : item.sentiment === 'negative' ? '📉' : '➖' }}
+            </span>
+            <span class="news-time">{{ formatNewsTime(item.created_at) }}</span>
+          </div>
+          <div class="news-title">{{ item.title }}</div>
+          <div class="news-source">{{ item.source }}</div>
+        </a>
+      </div>
+    </div>
+
     <!-- ⚙️ 風控參數設定 -->
     <div class="config-section risk-settings">
       <h3>⚙️ 風控參數設定</h3>
@@ -198,6 +242,7 @@
         </button>
       </div>
     </div>
+    </div><!-- end news-settings-row -->
   </div>
 </template>
 
@@ -231,6 +276,11 @@ const riskSettings = ref({
 const saving = ref(false)
 
 const positions = ref([])
+const newsList = ref([])
+const newsLoading = ref(false)
+const newsFilter = ref({ symbol: '', sentiment: '' })
+const watchlistSymbols = ['AAPL', 'AMZN', 'TSLA', 'NVDA', 'NFLX', 'UBER', 'MSFT', 'GOOGL', 'META', 'ORCL']
+
 const riskLogs = ref([])
 const loading = ref(true)
 const paperStatus = ref(null)
@@ -334,6 +384,34 @@ const getRiskLabel = (pos) => {
   return `✅ 正常 (${pct}%)`
 }
 
+const fetchNews = async () => {
+  newsLoading.value = true
+  try {
+    let url = `${API_URL}/news?limit=20`
+    if (newsFilter.value.symbol) url += `&symbol=US.${newsFilter.value.symbol}`
+    if (newsFilter.value.sentiment) url += `&sentiment=${newsFilter.value.sentiment}`
+    const res = await fetch(url)
+    const data = await res.json()
+    newsList.value = Array.isArray(data) ? data : (data.news || [])
+  } catch (err) {
+    console.error('fetchNews error:', err)
+  } finally {
+    newsLoading.value = false
+  }
+}
+
+const formatNewsTime = (ts) => {
+  if (!ts) return ''
+  try {
+    const d = new Date(ts)
+    const now = new Date()
+    const diff = Math.floor((now - d) / 60000)
+    if (diff < 60) return `${diff}分鐘前`
+    if (diff < 1440) return `${Math.floor(diff/60)}小時前`
+    return d.toLocaleDateString('zh-TW')
+  } catch { return '' }
+}
+
 const formatTime = (timestamp) => {
   if (!timestamp) return '-'
   let d = timestamp
@@ -390,6 +468,7 @@ const saveRiskSettings = async () => {
 onMounted(() => {
   fetchData()
   fetchRiskSettings()
+  fetchNews()
 })
 </script>
 
@@ -411,6 +490,8 @@ onMounted(() => {
 
 .risk-page {
   animation: fadeIn 0.3s ease;
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
 }
 
 .page-header {
@@ -447,7 +528,21 @@ onMounted(() => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+}
+.news-settings-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: start;
+}
+.news-settings-row .news-section,
+.news-settings-row .config-section {
+  margin-bottom: 0;
+}
+.risk-settings .settings-grid {
+  max-height: 260px;
+  overflow-y: auto;
 }
 
 h3 {
@@ -546,6 +641,28 @@ h3 {
   padding: 20px;
   color: var(--color-text-muted);
 }
+
+/* 新聞模塊樣式 */
+.news-section { background: var(--bg-secondary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 12px 14px; }
+.news-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.news-header h3 { margin: 0; font-size: 14px; color: var(--text-primary); }
+.news-filters { display: flex; gap: 8px; align-items: center; }
+.news-select { background: var(--bg-tertiary); border: 1px solid var(--border-default); color: var(--text-primary); padding: 3px 8px; border-radius: 4px; font-size: 12px; }
+.btn-refresh-news { background: #21262d; border: 1px solid #30363d; color: #8b949e; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+.btn-refresh-news:hover { color: #e6edf3; }
+.news-list { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
+.news-item { display: block; padding: 8px 10px; background: var(--bg-tertiary); border: 1px solid var(--border-default); border-radius: 6px; text-decoration: none; transition: border-color 0.15s; }
+.news-item:hover { border-color: #388bfd; }
+.news-item.positive { border-left: 3px solid #3fb950; }
+.news-item.negative { border-left: 3px solid #da3633; }
+.news-item.neutral { border-left: 3px solid #6e7681; }
+.news-meta { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; }
+.news-symbol { font-size: 11px; font-weight: 700; color: #388bfd; background: rgba(56,139,253,0.1); padding: 1px 6px; border-radius: 3px; }
+.news-sentiment { font-size: 12px; }
+.news-time { font-size: 11px; color: #6e7681; margin-left: auto; }
+.news-title { font-size: 12px; color: #e6edf3; line-height: 1.4; margin-bottom: 3px; }
+.news-source { font-size: 11px; color: #6e7681; }
+.empty-news { text-align: center; padding: 20px; color: #6e7681; font-size: 13px; }
 
 /* 風控參數設定樣式 */
 .risk-settings {
