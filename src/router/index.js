@@ -38,6 +38,12 @@ const routes = [
     meta: { title: '回测结果', icon: 'backtests' }
   },
   {
+    path: '/backtest-runner',
+    name: 'BacktestRunner',
+    component: () => import('../views/BacktestRunner.vue'),
+    meta: { title: '執行回測', icon: 'backtests' }
+  },
+  {
     path: '/strategies',
     name: 'Strategies',
     component: () => import('../views/Strategies.vue'),

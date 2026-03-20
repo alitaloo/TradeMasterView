@@ -38,6 +38,7 @@ const menuItems = [
   { path: '/orders', label: '訂單管理', icon: '📋' },
   { path: '/risk', label: '風控儀表板', icon: '🛡️' },
   { path: '/backtests', label: '回測結果', icon: '📉' },
+  { path: '/backtest-runner', label: '執行回測', icon: '⚡' },
   { path: '/strategies', label: '策略管理', icon: '⚙️' },
   { path: '/stock-strategies', label: '股票策略', icon: '🎯' },
   { path: '/stocks', label: '股票清單', icon: '📋' },
