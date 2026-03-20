@@ -206,7 +206,14 @@ const fetchPositions = async () => {
     const data = await response.json()
     
     if (data.positions) {
-      positions.value = data.positions || []
+      // 正規化欄位名稱（API 用 average_cost/unrealized_pnl，前端用 avg_price/pnl）
+      positions.value = (data.positions || []).map(p => ({
+        ...p,
+        avg_price: p.avg_price ?? p.average_cost ?? 0,
+        pnl: p.pnl ?? p.unrealized_pnl ?? 0,
+        pnl_pct: p.pnl_pct ?? p.unrealized_pnl_pct ?? 0,
+        status: p.status || 'HOLDING'
+      }))
     }
     
     // 獲取摘要
