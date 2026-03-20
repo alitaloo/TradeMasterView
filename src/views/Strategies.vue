@@ -81,6 +81,7 @@
           <div class="strategy-footer">
             <button class="action-btn" @click="viewDetails(strategy)">📊 詳情</button>
             <button class="action-btn" @click="editStrategy(strategy)">✏️ 編輯</button>
+            <button class="action-btn action-btn-backtest" @click="viewBacktest(strategy)">📈 回測</button>
           </div>
         </div>
       </div>
@@ -181,7 +182,10 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
+
+const router = useRouter()
 
 const API_URL = import.meta.env.VITE_API_URL
 const { error: showToast } = useToast()
@@ -288,6 +292,19 @@ const toggleStrategy = async (strategy) => {
 const viewDetails = (strategy) => {
   selectedStrategy.value = strategy
   showDetailsModal.value = true
+}
+
+const viewBacktest = (strategy) => {
+  // 從策略名稱映射到指標名稱
+  const indicatorMap = {
+    'Stooq_V2': 'VolumeMA_Crossover',
+    'Trend_Filtered': 'VolumePrice_Confirm',
+    'RSI_Strategy': 'RSI_Momentum',
+    'VWAP_Strategy': 'VWAP_Reversion'
+  }
+  
+  const indicator = indicatorMap[strategy.name] || 'VolumeMA_Crossover'
+  router.push(`/backtests?tab=results&indicator=${encodeURIComponent(indicator)}`)
 }
 
 const editStrategy = (strategy) => {
@@ -580,6 +597,16 @@ onMounted(fetchStrategies)
 
 .action-btn:hover {
   background: var(--color-border-light);
+}
+
+.action-btn-backtest {
+  background: rgba(63, 185, 80, 0.15);
+  color: #3fb950 !important;
+}
+
+.action-btn-backtest:hover {
+  background: #3fb950;
+  color: #fff !important;
 }
 
 .loading, .error {

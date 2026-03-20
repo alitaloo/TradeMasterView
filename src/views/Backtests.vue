@@ -1,18 +1,33 @@
 <template>
   <div class="backtests-page">
     <div class="page-header">
-      <h1 class="page-title">📊 回測分析</h1>
-      <div class="tab-switcher">
-        <button :class="['tab-btn', activeTab === 'daily' ? 'active' : '']" @click="activeTab = 'daily'">每日績效</button>
-        <button :class="['tab-btn', activeTab === 'results' ? 'active' : '']" @click="activeTab = 'results'; loadBacktestResults()">策略回測</button>
-      </div>
+      <h1 class="page-title">📊 回測結果</h1>
+    </div>
+
+    <!-- Tab 導航 -->
+    <div class="tabs">
+      <button 
+        class="tab" 
+        :class="{ active: activeTab === 'daily' }"
+        @click="activeTab = 'daily'"
+      >
+        📅 每日績效
+      </button>
+      <button 
+        class="tab" 
+        :class="{ active: activeTab === 'results' }"
+        @click="activeTab = 'results'"
+      >
+        📈 策略回測結果
+      </button>
     </div>
 
     <!-- Tab 1: 每日績效 -->
-    <div v-if="activeTab === 'daily'">
+    <div v-show="activeTab === 'daily'" class="tab-content">
       <div v-if="loadingDaily" class="loading">載入中...</div>
-      <div v-else-if="dailySummaries.length === 0" class="empty">暫無數據</div>
-      <div v-else>
+      <div v-else-if="dailySummaries.length === 0" class="empty">暫無回測數據</div>
+      
+      <div v-else class="backtests-content">
         <!-- 摘要卡片 -->
         <div class="summary-cards">
           <div class="summary-card">
@@ -41,20 +56,22 @@
           </div>
         </div>
 
-        <!-- 資產曲線 -->
-        <div class="card chart-card">
-          <div class="card-header"><h2 class="card-title">📈 資產曲線</h2></div>
-          <canvas ref="equityChartRef" height="80"></canvas>
-        </div>
-
-        <!-- 每日結算表 -->
+        <!-- 每日結算列表 -->
         <div class="card">
-          <div class="card-header"><h2 class="card-title">📅 每日結算紀錄</h2></div>
+          <div class="card-header">
+            <h2 class="card-title">📅 每日結算紀錄</h2>
+          </div>
           <table class="table">
             <thead>
               <tr>
-                <th>日期</th><th>總資產</th><th>現金</th><th>市值</th>
-                <th>未實現損益</th><th>整體盈虧</th><th>買入</th><th>賣出</th>
+                <th>日期</th>
+                <th>總價值</th>
+                <th>現金</th>
+                <th>市值</th>
+                <th>未實現損益</th>
+                <th>整體盈虧</th>
+                <th>買入</th>
+                <th>賣出</th>
               </tr>
             </thead>
             <tbody>
@@ -63,8 +80,12 @@
                 <td>${{ formatNumber(item.total_value) }}</td>
                 <td>${{ formatNumber(item.cash) }}</td>
                 <td>${{ formatNumber(item.market_value) }}</td>
-                <td :class="item.unrealized_pnl >= 0 ? 'profit' : 'loss'">${{ formatNumber(item.unrealized_pnl) }}</td>
-                <td :class="item.daily_pnl >= 0 ? 'profit' : 'loss'">{{ item.daily_pnl >= 0 ? '+' : '' }}${{ formatNumber(item.daily_pnl) }}</td>
+                <td :class="item.unrealized_pnl >= 0 ? 'profit' : 'loss'">
+                  ${{ formatNumber(item.unrealized_pnl) }}
+                </td>
+                <td :class="item.daily_pnl >= 0 ? 'profit' : 'loss'">
+                  {{ item.daily_pnl >= 0 ? '+' : '' }}${{ formatNumber(item.daily_pnl) }}
+                </td>
                 <td>{{ item.buy_count }}</td>
                 <td>{{ item.sell_count }}</td>
               </tr>
@@ -75,87 +96,99 @@
     </div>
 
     <!-- Tab 2: 策略回測結果 -->
-    <div v-if="activeTab === 'results'">
-      <!-- 篩選器 -->
-      <div class="filters">
-        <select v-model="filterSymbol" class="filter-select" @change="applyFilters">
-          <option value="">全部股票</option>
-          <option v-for="s in symbolList" :key="s" :value="s">{{ s.replace('US.','') }}</option>
-        </select>
-        <select v-model="filterTimeframe" class="filter-select" @change="applyFilters">
-          <option value="">全部週期</option>
-          <option value="1d">日線</option>
-          <option value="1h">小時</option>
-          <option value="5m">5分鐘</option>
-        </select>
-        <select v-model="filterIndicator" class="filter-select" @change="applyFilters">
-          <option value="">全部指標</option>
-          <option v-for="ind in indicatorList" :key="ind" :value="ind">{{ ind }}</option>
-        </select>
-        <select v-model="sortBy" class="filter-select" @change="applyFilters">
-          <option value="sharpe">按夏普排序</option>
-          <option value="return_pct">按報酬率排序</option>
-          <option value="win_rate">按勝率排序</option>
-          <option value="trades">按交易次數排序</option>
-        </select>
-        <span class="filter-count">{{ filteredResults.length }} 筆</span>
+    <div v-show="activeTab === 'results'" class="tab-content">
+      <!-- 頂部篩選器 -->
+      <div class="filters-bar">
+        <div class="filter-group">
+          <label>股票</label>
+          <select v-model="filters.symbol">
+            <option value="">All</option>
+            <option v-for="s in watchlist" :key="s" :value="s">{{ s }}</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>週期</label>
+          <select v-model="filters.timeframe">
+            <option value="">All</option>
+            <option value="1d">1d</option>
+            <option value="1h">1h</option>
+            <option value="5m">5m</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>指標</label>
+          <select v-model="filters.indicator">
+            <option value="">All</option>
+            <option value="VolumeMA_Crossover">VolumeMA_Crossover</option>
+            <option value="VolumePrice_Confirm">VolumePrice_Confirm</option>
+            <option value="VWAP_Reversion">VWAP_Reversion</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>排序</label>
+          <select v-model="filters.sortBy">
+            <option value="sharpe">Sharpe</option>
+            <option value="return_pct">報酬率</option>
+            <option value="trades">交易次數</option>
+          </select>
+        </div>
       </div>
 
-      <div v-if="loadingResults" class="loading">載入回測數據...</div>
-      <div v-else-if="backtestResults.length === 0" class="empty">暫無回測數據</div>
-      <div v-else>
-        <!-- 圖表區 -->
-        <div class="charts-row">
-          <!-- 散點圖 -->
-          <div class="card chart-card">
-            <div class="card-header">
-              <h2 class="card-title">🎯 報酬率 vs 夏普比率</h2>
-              <span class="card-hint">點大小 = 交易次數</span>
-            </div>
-            <canvas ref="scatterChartRef" height="140"></canvas>
-          </div>
-          <!-- Top 10 柱狀圖 -->
-          <div class="card chart-card">
-            <div class="card-header"><h2 class="card-title">🏆 Top 10 策略（夏普）</h2></div>
-            <canvas ref="barChartRef" height="140"></canvas>
-          </div>
+      <!-- 可視化圖表 -->
+      <div class="charts-container">
+        <div class="chart-card">
+          <h3 class="chart-title">📊 報酬率 vs 夏普比率</h3>
+          <div ref="scatterChartRef" class="chart"></div>
         </div>
+        <div class="chart-card">
+          <h3 class="chart-title">🏆 Top 10 最佳策略</h3>
+          <div ref="barChartRef" class="chart"></div>
+        </div>
+      </div>
 
-        <!-- 數據表格 -->
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">📋 回測明細</h2>
-            <div class="pagination-info">第 {{ currentPage }}/{{ totalPages }} 頁</div>
-          </div>
-          <table class="table">
-            <thead>
-              <tr>
-                <th>股票</th><th>週期</th><th>指標</th>
-                <th>報酬率</th><th>夏普</th><th>最大回撤</th><th>勝率</th><th>交易次數</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="r in paginatedResults" :key="`${r.symbol}-${r.timeframe}-${r.indicator}`">
-                <td class="symbol-cell">{{ r.symbol ? r.symbol.replace('US.','') : '-' }}</td>
-                <td><span class="tf-badge" :class="r.timeframe">{{ r.timeframe }}</span></td>
-                <td class="indicator-cell">{{ r.indicator }}</td>
-                <td :class="parseFloat(r.return_pct||r.return||0) >= 0 ? 'profit' : 'loss'">
-                  {{ (parseFloat(r.return_pct||r.return||0)*100).toFixed(2) }}%
-                </td>
-                <td :class="parseFloat(r.sharpe||0) >= 0 ? 'profit' : 'loss'">
-                  {{ parseFloat(r.sharpe||0).toFixed(3) }}
-                </td>
-                <td class="loss">{{ r.max_dd ? (parseFloat(r.max_dd)*100).toFixed(1)+'%' : '-' }}</td>
-                <td>{{ r.win_rate ? (parseFloat(r.win_rate)*100).toFixed(1)+'%' : '-' }}</td>
-                <td>{{ r.trades || r.total_trades || '-' }}</td>
-              </tr>
-            </tbody>
-          </table>
-          <div class="pagination" v-if="totalPages > 1">
-            <button :disabled="currentPage === 1" @click="currentPage--" class="page-btn">‹</button>
-            <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
-            <button :disabled="currentPage === totalPages" @click="currentPage++" class="page-btn">›</button>
-          </div>
+      <!-- 數據表格 -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">📋 策略回測明細</h2>
+          <span class="table-info">共 {{ filteredBacktestData.length }} 筆</span>
+        </div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Timeframe</th>
+              <th>Indicator</th>
+              <th>報酬率</th>
+              <th>夏普</th>
+              <th>最大回撤</th>
+              <th>勝率</th>
+              <th>交易次數</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in paginatedData" :key="item.batch_id + item.symbol + item.indicator">
+              <td>{{ item.symbol }}</td>
+              <td>{{ item.timeframe }}</td>
+              <td>{{ item.indicator }}</td>
+              <td :class="item.return_pct >= 0 ? 'profit' : 'loss'">
+                {{ item.return_pct >= 0 ? '+' : '' }}{{ item.return_pct?.toFixed(2) }}%
+              </td>
+              <td :class="item.sharpe >= 0 ? 'profit' : 'loss'">
+                {{ item.sharpe?.toFixed(2) }}
+              </td>
+              <td class="loss">{{ item.max_dd ? item.max_dd.toFixed(2) + '%' : '-' }}</td>
+              <td>{{ item.win_rate ? item.win_rate.toFixed(1) + '%' : '-' }}</td>
+              <td>{{ item.trades || 0 }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <!-- 分頁 -->
+        <div v-if="totalPages > 1" class="pagination">
+          <button class="page-btn" :disabled="currentPage === 1" @click="currentPage = 1">««</button>
+          <button class="page-btn" :disabled="currentPage === 1" @click="currentPage--">«</button>
+          <span class="page-info">第 {{ currentPage }} / {{ totalPages }} 頁</span>
+          <button class="page-btn" :disabled="currentPage === totalPages" @click="currentPage++">»</button>
+          <button class="page-btn" :disabled="currentPage === totalPages" @click="currentPage = totalPages">»»</button>
         </div>
       </div>
     </div>
@@ -164,62 +197,124 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import { Chart, registerables } from 'chart.js'
-Chart.register(...registerables)
+import { useRoute } from 'vue-router'
+import * as echarts from 'echarts'
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1'
 const INITIAL_BALANCE = 1000000
-const PAGE_SIZE = 20
+const ITEMS_PER_PAGE = 20
 
-// Tab
+const route = useRoute()
 const activeTab = ref('daily')
-
-// Daily
-const dailySummaries = ref([])
-const loadingDaily = ref(true)
-const equityChartRef = ref(null)
-let equityChartInstance = null
-
-// Backtest results
-const backtestResults = ref([])
-const filteredResults = ref([])
-const loadingResults = ref(false)
 const scatterChartRef = ref(null)
 const barChartRef = ref(null)
-let scatterChartInstance = null
-let barChartInstance = null
+let scatterChart = null
+let barChart = null
 
-// Filters
-const filterSymbol = ref('')
-const filterTimeframe = ref('')
-const filterIndicator = ref('')
-const sortBy = ref('sharpe')
+// Tab 1 數據
+const dailySummaries = ref([])
+const loadingDaily = ref(true)
+
+// Tab 2 數據
+const backtestData = ref([])
+const watchlist = ref([])
+const loadingResults = ref(true)
 const currentPage = ref(1)
 
-const symbolList = computed(() => [...new Set(backtestResults.value.map(r => r.symbol).filter(Boolean))].sort())
-const indicatorList = computed(() => [...new Set(backtestResults.value.map(r => r.indicator).filter(Boolean))].sort())
-
-const totalPages = computed(() => Math.ceil(filteredResults.value.length / PAGE_SIZE) || 1)
-const paginatedResults = computed(() => {
-  const start = (currentPage.value - 1) * PAGE_SIZE
-  return filteredResults.value.slice(start, start + PAGE_SIZE)
+const filters = ref({
+  symbol: '',
+  timeframe: '',
+  indicator: '',
+  sortBy: 'sharpe'
 })
 
-// Daily computed
+// 解析 URL query 參數
+const parseQueryParams = () => {
+  const tab = route.query.tab
+  if (tab === 'results' || tab === 'daily') {
+    activeTab.value = tab
+  }
+  if (route.query.indicator) {
+    filters.value.indicator = route.query.indicator
+  }
+}
+
+// 獲取 watchlist
+const fetchWatchlist = async () => {
+  try {
+    const res = await fetch(`${API_URL}/watchlist`)
+    const data = await res.json()
+    if (Array.isArray(data)) {
+      watchlist.value = data
+    } else if (data.symbols) {
+      watchlist.value = data.symbols
+    }
+  } catch (err) {
+    console.error('Fetch watchlist error:', err)
+    watchlist.value = ['US.TSLA', 'US.AAPL', 'US.MSFT', 'US.NVDA', 'US.GOOGL']
+  }
+}
+
+// 獲取回測數據
+const fetchBacktestData = async () => {
+  loadingResults.value = true
+  try {
+    const res = await fetch(`${API_URL}/backtests`)
+    const data = await res.json()
+    if (Array.isArray(data)) {
+      backtestData.value = data
+    } else if (data.results) {
+      backtestData.value = data.results
+    } else {
+      backtestData.value = []
+    }
+  } catch (err) {
+    console.error('Fetch backtest error:', err)
+    backtestData.value = []
+  } finally {
+    loadingResults.value = false
+    nextTick(() => {
+      renderCharts()
+    })
+  }
+}
+
+// 獲取每日結算數據
+const fetchDailySummaries = async () => {
+  loadingDaily.value = true
+  try {
+    const res = await fetch(`${API_URL}/paper/daily-summary?limit=30`)
+    const data = await res.json()
+    if (data.summaries) {
+      dailySummaries.value = data.summaries
+    }
+  } catch (err) {
+    console.error('Fetch daily summary error:', err)
+  } finally {
+    loadingDaily.value = false
+  }
+}
+
+// 計算屬性
 const totalReturn = computed(() => {
   if (!dailySummaries.value.length) return 0
-  return ((dailySummaries.value[0].total_value - INITIAL_BALANCE) / INITIAL_BALANCE) * 100
+  const latest = dailySummaries.value[0]
+  return ((latest.total_value - INITIAL_BALANCE) / INITIAL_BALANCE) * 100
 })
+
 const maxDailyLoss = computed(() => {
   if (!dailySummaries.value.length) return 0
   return Math.min(...dailySummaries.value.map(s => Number(s.daily_pnl) || 0))
 })
+
 const maxDailyLossDate = computed(() => {
   if (!dailySummaries.value.length) return ''
   const minDay = dailySummaries.value.reduce((a, b) =>
-    (Number(a.daily_pnl) || 0) < (Number(b.daily_pnl) || 0) ? a : b)
+    (Number(a.daily_pnl) || 0) < (Number(b.daily_pnl) || 0) ? a : b
+  )
   return minDay.date || ''
 })
+
 const recentTrend = computed(() => {
   const data = dailySummaries.value
   if (data.length < 2) return 0
@@ -229,279 +324,457 @@ const recentTrend = computed(() => {
   return ((latest - oldest) / oldest) * 100
 })
 
+const filteredBacktestData = computed(() => {
+  let data = [...backtestData.value]
+  
+  if (filters.value.symbol) {
+    data = data.filter(d => d.symbol === filters.value.symbol)
+  }
+  if (filters.value.timeframe) {
+    data = data.filter(d => d.timeframe === filters.value.timeframe)
+  }
+  if (filters.value.indicator) {
+    data = data.filter(d => d.indicator === filters.value.indicator)
+  }
+  
+  // 排序
+  const sortKey = filters.value.sortBy
+  data.sort((a, b) => {
+    const aVal = Number(a[sortKey]) || 0
+    const bVal = Number(b[sortKey]) || 0
+    return bVal - aVal
+  })
+  
+  return data
+})
+
+const totalPages = computed(() => {
+  return Math.ceil(filteredBacktestData.value.length / ITEMS_PER_PAGE) || 1
+})
+
+const paginatedData = computed(() => {
+  const start = (currentPage.value - 1) * ITEMS_PER_PAGE
+  return filteredBacktestData.value.slice(start, start + ITEMS_PER_PAGE)
+})
+
 const formatNumber = (num) => {
   if (!num && num !== 0) return '0.00'
   return Number(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-const fetchDaily = async () => {
-  loadingDaily.value = true
-  try {
-    const res = await fetch(`${API_URL}/paper/daily-summary?limit=30`)
-    const data = await res.json()
-    if (data.summaries) {
-      dailySummaries.value = data.summaries
-      await nextTick()
-      renderEquityChart()
-    }
-  } catch (err) {
-    console.error('Fetch daily error:', err)
-  } finally {
-    loadingDaily.value = false
+// 渲染散點圖
+const renderScatterChart = () => {
+  if (!scatterChartRef.value || !filteredBacktestData.value.length) return
+  
+  if (scatterChart) {
+    scatterChart.dispose()
   }
-}
-
-const loadBacktestResults = async () => {
-  if (backtestResults.value.length > 0) return
-  loadingResults.value = true
-  try {
-    const res = await fetch(`${API_URL}/backtests?limit=500`)
-    const data = await res.json()
-    const items = data.backtests || data.results || []
-    backtestResults.value = items
-    applyFilters()
-    await nextTick()
-    renderCharts()
-  } catch (err) {
-    console.error('Fetch backtests error:', err)
-  } finally {
-    loadingResults.value = false
+  
+  scatterChart = echarts.init(scatterChartRef.value)
+  scatterChart.showLoading()
+  
+  const data = filteredBacktestData.value.map(d => ({
+    symbol: d.symbol,
+    indicator: d.indicator,
+    timeframe: d.timeframe,
+    value: [
+      d.return_pct || 0,
+      d.sharpe || 0,
+      d.trades || 0
+    ]
+  }))
+  
+  // 指標顏色映射
+  const indicatorColors = {
+    'VolumeMA_Crossover': '#3fb950',
+    'VolumePrice_Confirm': '#58a6ff',
+    'VWAP_Reversion': '#f0883e'
   }
-}
-
-const applyFilters = () => {
-  let results = [...backtestResults.value]
-  if (filterSymbol.value) results = results.filter(r => r.symbol === filterSymbol.value)
-  if (filterTimeframe.value) results = results.filter(r => r.timeframe === filterTimeframe.value)
-  if (filterIndicator.value) results = results.filter(r => r.indicator === filterIndicator.value)
-  results.sort((a, b) => {
-    const aVal = parseFloat(a[sortBy.value] || a.return_pct || 0)
-    const bVal = parseFloat(b[sortBy.value] || b.return_pct || 0)
-    return bVal - aVal
-  })
-  filteredResults.value = results
-  currentPage.value = 1
-  nextTick(() => renderCharts())
-}
-
-const renderEquityChart = () => {
-  if (!equityChartRef.value || !dailySummaries.value.length) return
-  if (equityChartInstance) { equityChartInstance.destroy(); equityChartInstance = null }
-  const sorted = [...dailySummaries.value].reverse()
-  const labels = sorted.map(d => d.date)
-  const values = sorted.map(d => parseFloat(d.total_value) || 0)
-  equityChartInstance = new Chart(equityChartRef.value, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: '總資產',
-        data: values,
-        borderColor: '#388bfd',
-        backgroundColor: 'rgba(56,139,253,0.1)',
-        borderWidth: 2,
-        pointRadius: 3,
-        tension: 0.4,
-        fill: true
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => `$${ctx.parsed.y.toLocaleString()}`
-          }
-        }
-      },
-      scales: {
-        x: { ticks: { color: '#8b949e', maxTicksLimit: 8 }, grid: { color: '#21262d' } },
-        y: {
-          ticks: { color: '#8b949e', callback: (v) => '$' + (v/1000).toFixed(0) + 'K' },
-          grid: { color: '#21262d' }
-        }
+  
+  const option = {
+    backgroundColor: '#0d1117',
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: '#161b22',
+      borderColor: '#30363d',
+      textStyle: { color: '#e6edf3' },
+      formatter: (params) => {
+        const d = data[params.dataIndex]
+        return `<b>${d.symbol}</b><br/>
+                指標: ${d.indicator}<br/>
+                週期: ${d.timeframe}<br/>
+                報酬率: ${d.value[0].toFixed(2)}%<br/>
+                夏普: ${d.value[1].toFixed(2)}<br/>
+                交易次數: ${d.value[2]}`
       }
-    }
-  })
+    },
+    grid: {
+      left: '8%',
+      right: '8%',
+      top: '10%',
+      bottom: '12%'
+    },
+    xAxis: {
+      name: '報酬率 (%)',
+      nameTextStyle: { color: '#e6edf3' },
+      axisLine: { lineStyle: { color: '#30363d' } },
+      axisLabel: { color: '#e6edf3' },
+      splitLine: { lineStyle: { color: '#30363d' } }
+    },
+    yAxis: {
+      name: '夏普比率',
+      nameTextStyle: { color: '#e6edf3' },
+      axisLine: { lineStyle: { color: '#30363d' } },
+      axisLabel: { color: '#e6edf3' },
+      splitLine: { lineStyle: { color: '#30363d' } }
+    },
+    series: [{
+      type: 'scatter',
+      symbolSize: (val) => Math.max(6, Math.min(30, val[2] / 10)),
+      itemStyle: {
+        color: (params) => {
+          const indicator = data[params.dataIndex]?.indicator
+          return indicatorColors[indicator] || '#8b949e'
+        },
+        opacity: 0.8
+      },
+      data: data.map(d => d.value)
+    }]
+  }
+  
+  setTimeout(() => {
+    scatterChart.setOption(option)
+    scatterChart.hideLoading()
+  }, 300)
+}
+
+// 渲染 Top 10 柱狀圖
+const renderBarChart = () => {
+  if (!barChartRef.value || !filteredBacktestData.value.length) return
+  
+  if (barChart) {
+    barChart.dispose()
+  }
+  
+  barChart = echarts.init(barChartRef.value)
+  barChart.showLoading()
+  
+  const top10 = filteredBacktestData.value.slice(0, 10)
+  const names = top10.map(d => `${d.symbol} ${d.indicator} (${d.timeframe})`)
+  const values = top10.map(d => d.sharpe || 0)
+  
+  const option = {
+    backgroundColor: '#0d1117',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      backgroundColor: '#161b22',
+      borderColor: '#30363d',
+      textStyle: { color: '#e6edf3' }
+    },
+    grid: {
+      left: '3%',
+      right: '8%',
+      top: '5%',
+      bottom: '15%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'value',
+      name: '夏普比率',
+      nameTextStyle: { color: '#e6edf3' },
+      axisLine: { lineStyle: { color: '#30363d' } },
+      axisLabel: { color: '#e6edf3' },
+      splitLine: { lineStyle: { color: '#30363d' } }
+    },
+    yAxis: {
+      type: 'category',
+      data: names.reverse(),
+      axisLine: { lineStyle: { color: '#30363d' } },
+      axisLabel: { 
+        color: '#e6edf3',
+        fontSize: 10,
+        width: 150,
+        overflow: 'truncate'
+      }
+    },
+    series: [{
+      type: 'bar',
+      data: values.reverse(),
+      itemStyle: {
+        color: (params) => params.value >= 0 ? '#3fb950' : '#f85149'
+      },
+      barWidth: '60%'
+    }]
+  }
+  
+  setTimeout(() => {
+    barChart.setOption(option)
+    barChart.hideLoading()
+  }, 300)
 }
 
 const renderCharts = () => {
-  const data = filteredResults.value.slice(0, 200)
-  renderScatterChart(data)
-  renderBarChart(data)
+  renderScatterChart()
+  renderBarChart()
 }
 
-const renderScatterChart = (data) => {
-  if (!scatterChartRef.value) return
-  if (scatterChartInstance) { scatterChartInstance.destroy(); scatterChartInstance = null }
+// 監聽篩選器變更
+watch([filters], () => {
+  currentPage.value = 1
+  nextTick(() => {
+    renderCharts()
+  })
+}, { deep: true })
 
-  const indicatorColors = {
-    'VolumeMA_Crossover': '#388bfd',
-    'VolumePrice_Confirm': '#3fb950',
-    'VWAP_Reversion': '#d29922',
-    'ATRTrailingStop': '#bc8cff',
-    'default': '#8b949e'
+// 監聽 tab 切換
+watch(activeTab, (newTab) => {
+  if (newTab === 'results' && !backtestData.value.length) {
+    fetchBacktestData()
   }
+})
 
-  const grouped = {}
-  data.forEach(r => {
-    const ind = r.indicator || 'other'
-    if (!grouped[ind]) grouped[ind] = []
-    grouped[ind].push({
-      x: parseFloat(r.return_pct || r.return || 0) * 100,
-      y: parseFloat(r.sharpe || 0),
-      r: Math.min(Math.max(Math.sqrt((r.trades || r.total_trades || 10)) * 1.5, 3), 15),
-      label: `${(r.symbol||'').replace('US.','')} ${ind} ${r.timeframe}`
-    })
-  })
-
-  const datasets = Object.entries(grouped).map(([ind, points]) => ({
-    label: ind,
-    data: points,
-    backgroundColor: (indicatorColors[ind] || indicatorColors.default) + '99',
-    borderColor: indicatorColors[ind] || indicatorColors.default,
-    borderWidth: 1
-  }))
-
-  scatterChartInstance = new Chart(scatterChartRef.value, {
-    type: 'bubble',
-    data: { datasets },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { labels: { color: '#8b949e', boxWidth: 10 } },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => {
-              const pt = ctx.raw
-              return `${pt.label}: 報酬 ${pt.x.toFixed(1)}% 夏普 ${pt.y.toFixed(2)}`
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          title: { display: true, text: '報酬率 (%)', color: '#8b949e' },
-          ticks: { color: '#8b949e' },
-          grid: { color: '#21262d' }
-        },
-        y: {
-          title: { display: true, text: '夏普比率', color: '#8b949e' },
-          ticks: { color: '#8b949e' },
-          grid: { color: '#21262d' }
-        }
-      }
-    }
-  })
-}
-
-const renderBarChart = (data) => {
-  if (!barChartRef.value) return
-  if (barChartInstance) { barChartInstance.destroy(); barChartInstance = null }
-
-  const top10 = [...data]
-    .filter(r => r.sharpe && parseFloat(r.sharpe) > 0)
-    .sort((a, b) => parseFloat(b.sharpe) - parseFloat(a.sharpe))
-    .slice(0, 10)
-
-  if (!top10.length) return
-
-  const labels = top10.map(r =>
-    `${(r.symbol||'').replace('US.','')} ${r.timeframe} ${(r.indicator||'').split('_')[0]}`
-  )
-  const values = top10.map(r => parseFloat(r.sharpe || 0))
-  const colors = values.map(v => v > 1 ? '#3fb950cc' : v > 0.5 ? '#388bfdcc' : '#d29922cc')
-
-  barChartInstance = new Chart(barChartRef.value, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: '夏普比率',
-        data: values,
-        backgroundColor: colors,
-        borderRadius: 4
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: { label: (ctx) => `夏普: ${ctx.parsed.x.toFixed(3)}` }
-        }
-      },
-      scales: {
-        x: { ticks: { color: '#8b949e' }, grid: { color: '#21262d' } },
-        y: { ticks: { color: '#e6edf3', font: { size: 11 } }, grid: { color: '#21262d' } }
-      }
-    }
-  })
-}
-
-onMounted(() => { fetchDaily() })
-
-watch(activeTab, async (tab) => {
-  if (tab === 'daily') {
-    await nextTick()
-    renderEquityChart()
+onMounted(() => {
+  parseQueryParams()
+  fetchDailySummaries()
+  fetchWatchlist()
+  if (activeTab.value === 'results') {
+    fetchBacktestData()
   }
 })
 </script>
 
 <style scoped>
-.backtests-page { animation: fadeIn 0.3s ease; }
-.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-.page-title { font-size: 1.5rem; font-weight: 700; margin: 0; }
+.backtests-page {
+  animation: fadeIn 0.3s ease;
+}
 
-.tab-switcher { display: flex; gap: 4px; background: var(--bg-secondary, #161b22); border: 1px solid var(--border-default, #30363d); border-radius: 6px; padding: 3px; }
-.tab-btn { padding: 6px 16px; border: none; background: transparent; color: #8b949e; border-radius: 4px; cursor: pointer; font-size: 13px; transition: all 0.15s; }
-.tab-btn.active { background: var(--bg-tertiary, #21262d); color: #e6edf3; }
-.tab-btn:hover:not(.active) { color: #e6edf3; }
+.page-header {
+  margin-bottom: 16px;
+}
 
-.summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
-.summary-card { background: var(--bg-secondary, #161b22); border: 1px solid var(--border-default, #30363d); border-radius: 6px; padding: 16px; }
-.summary-label { font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-.summary-value { font-size: 24px; font-weight: 700; font-family: 'SF Mono', monospace; margin-bottom: 4px; }
-.summary-sub { font-size: 11px; color: #6e7681; }
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
 
-.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-.chart-card { overflow: hidden; }
-.chart-card canvas { padding: 8px 12px 12px; }
-.card-hint { font-size: 11px; color: #6e7681; }
+/* Tab 樣式 */
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 12px;
+}
 
-.filters { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
-.filter-select { background: var(--bg-secondary, #161b22); border: 1px solid var(--border-default, #30363d); color: #e6edf3; padding: 6px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; }
-.filter-count { font-size: 12px; color: #8b949e; margin-left: 4px; }
+.tab {
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 0.9375rem;
+  transition: all var(--transition-fast);
+}
 
-.card { background: var(--bg-secondary, #161b22); border: 1px solid var(--border-default, #30363d); border-radius: 6px; overflow: hidden; margin-bottom: 16px; }
-.card-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border-default, #30363d); }
-.card-title { font-size: 14px; font-weight: 600; margin: 0; }
+.tab:hover {
+  background: var(--color-bg-tertiary);
+}
 
-.table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.table th, .table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #21262d; }
-.table th { background: #0d1117; font-weight: 600; font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
-.table tr:last-child td { border-bottom: none; }
-.table tr:hover td { background: #21262d22; }
+.tab.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
 
-.symbol-cell { font-family: 'SF Mono', monospace; font-weight: 600; }
-.indicator-cell { font-size: 12px; color: #8b949e; }
-.tf-badge { padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: 600; }
-.tf-badge.1d { background: rgba(56,139,253,0.2); color: #388bfd; }
-.tf-badge.1h { background: rgba(63,185,80,0.2); color: #3fb950; }
-.tf-badge.5m { background: rgba(248,81,73,0.2); color: #f85149; }
+.tab-content {
+  animation: fadeIn 0.2s ease;
+}
 
-.profit { color: #3fb950; }
-.loss { color: #f85149; }
-.neutral { color: #e6edf3; }
+/* 篩選器 */
+.filters-bar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  background: var(--color-bg-card);
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
 
-.pagination { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 12px; border-top: 1px solid #21262d; }
-.page-btn { background: #21262d; border: 1px solid #30363d; color: #e6edf3; padding: 4px 12px; border-radius: 4px; cursor: pointer; }
-.page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-.page-info { font-size: 13px; color: #8b949e; }
-.pagination-info { font-size: 12px; color: #8b949e; }
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 
-.loading, .empty { text-align: center; padding: 60px 20px; color: #6e7681; }
+.filter-group label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.filter-group select {
+  padding: 8px 12px;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  min-width: 150px;
+}
+
+/* 圖表 */
+.charts-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.chart-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+}
+
+.chart-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.chart {
+  width: 100%;
+  height: 350px;
+}
+
+@media (max-width: 1024px) {
+  .charts-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 表格樣式 */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.table-info {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table th {
+  background: var(--color-bg-tertiary);
+  font-weight: 600;
+  font-size: 0.8125rem;
+}
+
+.profit { color: var(--color-profit, #3fb950); }
+.loss { color: var(--color-loss, #f85149); }
+.neutral { color: var(--text-primary, #e6edf3); }
+
+/* 摘要卡片 */
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.summary-card {
+  background: var(--bg-secondary, #161b22);
+  border: 1px solid var(--border-default, #30363d);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.summary-label {
+  font-size: 11px;
+  color: var(--text-secondary, #8b949e);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.summary-value {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  margin-bottom: 4px;
+}
+
+.summary-sub {
+  font-size: 11px;
+  color: var(--text-muted, #6e7681);
+}
+
+/* 分頁 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.page-btn {
+  padding: 8px 14px;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.page-btn:hover:not(:disabled) {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-info {
+  padding: 0 16px;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+.loading, .empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+}
 </style>
