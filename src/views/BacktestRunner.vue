@@ -36,6 +36,18 @@
         </div>
 
         <div class="card">
+          <div class="card-header"><h2 class="card-title">📅 回測時間範圍</h2></div>
+          <div class="range-group">
+            <label v-for="r in dateRanges" :key="r.value"
+              :class="['range-item', selectedDays === r.value ? 'active' : '']"
+              @click="selectedDays = r.value">
+              <span class="range-label">{{ r.label }}</span>
+              <span class="range-sub">{{ r.desc }}</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="card">
           <div class="card-header">
             <h2 class="card-title">🧠 選擇策略</h2>
             <div class="header-actions">
@@ -193,6 +205,14 @@ const stockList = ref([])
 const selectedSymbols = ref([])
 const selectedTimeframes = ref(['1d'])
 const selectedIndicators = ref([])
+const selectedDays = ref(365)
+
+const dateRanges = [
+  { value: 90,  label: '3 個月', desc: '近期表現' },
+  { value: 180, label: '6 個月', desc: '半年數據' },
+  { value: 365, label: '1 年',   desc: '全年回測（預設）' },
+  { value: 730, label: '2 年',   desc: '最長期限' },
+]
 const launching = ref(false)
 
 // Run state
@@ -284,7 +304,8 @@ const launchBacktest = async () => {
       body: JSON.stringify({
         symbols: selectedSymbols.value,
         timeframes: selectedTimeframes.value,
-        indicators: selectedIndicators.value
+        indicators: selectedIndicators.value,
+        days: selectedDays.value
       })
     })
     const data = await res.json()
@@ -430,6 +451,13 @@ onUnmounted(() => {
 .ind-info { display: flex; flex-direction: column; }
 .indicator-name { font-size: 13px; font-weight: 600; }
 .indicator-desc { font-size: 11px; color: #6e7681; }
+
+.range-group { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 10px 12px; }
+.range-item { display: flex; flex-direction: column; padding: 8px 10px; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
+.range-item:hover { border-color: #8b949e; }
+.range-item.active { border-color: #388bfd; background: rgba(56,139,253,0.1); }
+.range-label { font-size: 14px; font-weight: 600; color: #e6edf3; }
+.range-sub { font-size: 11px; color: #6e7681; margin-top: 2px; }
 
 .strategy-search { padding: 8px 12px; border-bottom: 1px solid #21262d; }
 .search-input { width: 100%; background: #0d1117; border: 1px solid #30363d; color: #e6edf3; padding: 6px 10px; border-radius: 4px; font-size: 12px; }
