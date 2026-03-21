@@ -163,7 +163,7 @@ if __name__ == "__main__":
     class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
         daemon_threads = True
     
-    server = ThreadingHTTPServer(("127.0.0.1", PORT), SPAProxyHandler)
+    server = ThreadingHTTPServer(("0.0.0.0", PORT), SPAProxyHandler)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

@@ -150,7 +150,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useToast } from '@/composables/useToast'
 import { Chart, registerables } from 'chart.js'
 Chart.register(...registerables)
@@ -343,6 +343,11 @@ const renderCharts = async () => {
     })
   }
 }
+
+// 顯示統計時才初始化 chart（v-if 讓 canvas DOM 此時才存在）
+watch(showCharts, (val) => {
+  if (val) renderCharts()
+})
 
 onMounted(() => {
   fetchOrders()
