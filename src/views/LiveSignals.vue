@@ -7,6 +7,7 @@
     <!-- 頁面標題 -->
     <div class="page-header">
       <h1 class="page-title">💰 真實交易信號</h1>
+      <button v-if="liveEnabled" @click="disableLiveTrading" class="btn-disable-live">🔴 停用真實交易</button>
     </div>
 
     <!-- 啟用/停用說明 -->
@@ -132,6 +133,17 @@ const fetchSignals = async () => {
   }
 }
 
+const disableLiveTrading = async () => {
+  if (!confirm('確定要停用真實交易嗎？')) return;
+  try {
+    await fetch(`${API_URL}/config/trading/mode`, {
+      method: 'PUT', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({enable_live: false, confirm: 'ENABLE_LIVE_TRADING'})
+    });
+    liveEnabled.value = false;
+  } catch(e) { console.error(e); }
+};
+
 const enableLiveTrading = async () => {
   if (confirmCode.value !== 'ENABLE_LIVE_TRADING') return
   
@@ -238,6 +250,8 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
+.btn-disable-live { background: transparent; border: 1px solid #da3633; color: #da3633; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.btn-disable-live:hover { background: rgba(218,54,51,0.1); }
 .btn-enable-live {
   background: #da3633;
   color: white;
