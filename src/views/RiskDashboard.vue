@@ -582,7 +582,7 @@ const saveRiskSettings = async () => {
 // 獲取真實交易風控參數設定
 const fetchLiveRiskSettings = async () => {
   try {
-    const res = await fetch(`${API_URL}/api/v1/config/risk/live`)
+    const res = await fetch(`${API_URL}/config/risk/live`)
     const data = await res.json()
     if (data.config) {
       liveRiskSettings.value = {
@@ -604,7 +604,7 @@ const fetchLiveRiskSettings = async () => {
 const saveLiveRiskSettings = async () => {
   savingLive.value = true
   try {
-    const res = await fetch(`${API_URL}/api/v1/config/risk/live`, {
+    const res = await fetch(`${API_URL}/config/risk/live`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(liveRiskSettings.value)
