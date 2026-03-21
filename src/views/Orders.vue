@@ -71,7 +71,7 @@
         </thead>
         <tbody>
           <tr v-for="order in paginatedOrders" :key="order.id">
-            <td class="order-id">{{ order.order_id }}</td>
+            <td class="order-id">{{ order.futu_order_id || order.id }}</td>
             <td class="symbol">{{ order.symbol }}</td>
             <td>
               <span :class="['direction', order.direction]">
@@ -83,7 +83,7 @@
             <td>{{ order.quantity }}</td>
             <td>{{ order.filled_quantity || 0 }}</td>
             <td>
-              <span :class="['status', order.status]">{{ order.status }}</span>
+              <span :class="['status', (order.status||'').toUpperCase()]">{{ order.status }}</span>
             </td>
             <td>
               <button class="btn-sm" @click="editOrder(order)">編輯</button>

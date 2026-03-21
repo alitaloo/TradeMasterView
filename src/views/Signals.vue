@@ -30,36 +30,6 @@
       <input v-model="filters.symbol" placeholder="股票代號" class="input" @input="currentPage = 1; fetchSignals()">
     </div>
 
-    <!-- 分頁 -->
-    <div v-if="totalPages > 1" class="pagination">
-      <button 
-        class="page-btn" 
-        :disabled="currentPage === 1"
-        @click="goToPage(1)"
-      >««</button>
-      <button 
-        class="page-btn" 
-        :disabled="currentPage === 1"
-        @click="goToPage(currentPage - 1)"
-      >«</button>
-      
-      <span class="page-info">
-        第 {{ currentPage }} / {{ totalPages }} 頁
-        (共 {{ totalCount }} 筆)
-      </span>
-      
-      <button 
-        class="page-btn" 
-        :disabled="currentPage === totalPages"
-        @click="goToPage(currentPage + 1)"
-      >»</button>
-      <button 
-        class="page-btn" 
-        :disabled="currentPage === totalPages"
-        @click="goToPage(totalPages)"
-      >»»</button>
-    </div>
-
     <!-- 信號列表 -->
     <div v-if="loading" class="loading">載入中...</div>
     <div v-else-if="signals.length === 0" class="empty">暫無信號</div>
@@ -94,6 +64,15 @@
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- 分頁 -->
+    <div v-if="totalPages > 1" class="pagination">
+      <button class="page-btn" :disabled="currentPage === 1" @click="goToPage(1)">««</button>
+      <button class="page-btn" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">«</button>
+      <span class="page-info">第 {{ currentPage }} / {{ totalPages }} 頁 (共 {{ totalCount }} 筆)</span>
+      <button class="page-btn" :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">»</button>
+      <button class="page-btn" :disabled="currentPage === totalPages" @click="goToPage(totalPages)">»»</button>
     </div>
   </div>
 </template>
