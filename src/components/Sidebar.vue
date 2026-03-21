@@ -288,8 +288,8 @@ onMounted(() => {
 }
 
 .nav-item.disabled {
-  opacity: 0.4;
-  pointer-events: none;
+  opacity: 0.6;
+  /* 允許點擊進入頁面，頁面內自行顯示啟用提示 */
 }
 
 .nav-icon {
