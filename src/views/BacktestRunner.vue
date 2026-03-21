@@ -443,7 +443,7 @@ onUnmounted(() => {
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .page-title { font-size: 1.5rem; font-weight: 700; margin: 0; }
 
-.setup-grid { display: grid; grid-template-columns: 1fr 420px; gap: 12px; }
+.setup-grid { display: grid; grid-template-columns: 1fr 420px; gap: 12px; align-items: start; }
 .config-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .config-col .card:nth-child(1),
 .config-col .card:nth-child(2) { grid-column: span 1; }

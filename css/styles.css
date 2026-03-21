@@ -203,6 +203,17 @@ a:hover {
   transition: background var(--transition-fast);
 }
 
+/* 斑馬紋樣式 */
+.table tbody tr:nth-child(even),
+table tbody tr:nth-child(even) {
+  background: rgba(255,255,255,0.02);
+}
+
+table tbody tr:hover,
+.table tbody tr:hover {
+  background: rgba(56,139,253,0.06) !important;
+}
+
 .table tbody tr:hover {
   background: var(--bg-tertiary);
 }

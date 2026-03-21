@@ -70,7 +70,9 @@
       <div class="card orders-card">
         <div class="card-header">
           <h2 class="card-title">訂單</h2>
-          <span class="order-count">{{ orders.length }} 筆</span>
+          <button class="filter-btn" @click="toggleOrders">
+            {{ showAllOrders ? '只顯示完成' : '顯示全部' }}
+          </button>
         </div>
         <div class="orders-list">
           <table class="data-table">
@@ -127,8 +129,10 @@ const summary = ref({
   overall_pnl_pct: 0
 })
 const positions = ref([])
+const allOrders = ref([])
 const orders = ref([])
 const loading = ref(false)
+const showAllOrders = ref(false)
 
 const loadData = async () => {
   loading.value = true
@@ -157,7 +161,8 @@ const loadData = async () => {
     positions.value = posRes.positions || posRes || []
     
     // 處理訂單
-    orders.value = orderRes.orders || []
+    allOrders.value = orderRes.orders || []
+    orders.value = allOrders.value.filter(o => o.status === 'filled')
     
   } catch (error) {
     console.error('載入失敗:', error)
@@ -175,6 +180,11 @@ const formatNumber = (num) => {
 const formatDate = (dateStr) => {
   if (!dateStr) return '-'
   return formatTaipei(dateStr)
+}
+
+const toggleOrders = () => {
+  showAllOrders.value = !showAllOrders.value
+  orders.value = showAllOrders.value ? allOrders.value : allOrders.value.filter(o => o.status === 'filled')
 }
 
 onMounted(() => {
@@ -324,9 +334,26 @@ onMounted(() => {
   color: var(--text-muted);
 }
 
+.filter-btn {
+  font-size: var(--text-xs);
+  padding: 2px 8px;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.filter-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
 .positions-list, .orders-list {
-  flex: none;
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .data-table {
