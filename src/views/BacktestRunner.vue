@@ -443,8 +443,12 @@ onUnmounted(() => {
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .page-title { font-size: 1.5rem; font-weight: 700; margin: 0; }
 
-.setup-grid { display: grid; grid-template-columns: 1fr 320px; gap: 12px; }
-.config-col { display: flex; flex-direction: column; gap: 8px; max-height: 500px; overflow-y: auto; }
+.setup-grid { display: grid; grid-template-columns: 1fr 420px; gap: 12px; }
+.config-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.config-col .card:nth-child(1),
+.config-col .card:nth-child(2) { grid-column: span 1; }
+.config-col .card:nth-child(3),
+.config-col .card:nth-child(4) { grid-column: 1 / -1; }
 
 .card { background: var(--bg-secondary, #161b22); border: 1px solid var(--border-default, #30363d); border-radius: 6px; overflow: hidden; margin-bottom: 12px; }
 .card-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #30363d; }

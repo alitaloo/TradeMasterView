@@ -39,7 +39,7 @@
                 {{ timeframeLabel(strategy.timeframe) }}
               </span>
             </td>
-            <td class="indicator">{{ strategy.indicator }}</td>
+            <td class="indicator">{{ strategy.indicator.replace('strategy:','').replace(/_/g,' ') }}</td>
             <td :class="getSharpeClass(strategy.sharpe)">{{ formatNumber(strategy.sharpe) }}</td>
             <td :class="getReturnClass(strategy.return_pct)">{{ formatPercent(strategy.return_pct) }}</td>
             <td>{{ formatPercent(strategy.win_rate) }}</td>
@@ -284,30 +284,36 @@ onMounted(() => {
 
 .strategies-table {
   width: 100%;
-  background: white;
-  border-radius: 12px;
+  background: #161b22;
+  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid #30363d;
 }
 
 .strategies-table th,
 .strategies-table td {
-  padding: 8px 12px !important;
+  padding: 7px 12px !important;
   text-align: left;
-  border-bottom: 1px solid #E5E7EB;
-  height: 36px;
+  border-bottom: 1px solid #21262d;
+  height: 34px;
+  color: #e6edf3;
+  font-size: 13px;
 }
 
 .strategies-table th {
-  background: #F9FAFB;
+  background: #0d1117;
   font-weight: 600;
-  color: #374151;
-  font-size: 13px;
+  color: #8b949e;
+  font-size: 12px;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .strategies-table tbody tr:hover {
-  background: #F9FAFB;
+  background: #1c2128;
 }
 
 .symbol {
@@ -340,23 +346,25 @@ onMounted(() => {
 
 .indicator {
   font-weight: 500;
-  color: #4B5563;
+  color: #388bfd;
+  font-family: monospace;
+  font-size: 12px;
 }
 
 .excellent {
-  color: #059669;
+  color: #3fb950;
   font-weight: 600;
 }
 
 .good {
-  color: #4F46E5;
+  color: #3fb950;
 }
 
 .neutral {
-  color: #6B7280;
+  color: #8b949e;
 }
 
 .poor {
-  color: #EF4444;
+  color: #f85149;
 }
 </style>
