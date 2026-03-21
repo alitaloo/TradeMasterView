@@ -7,6 +7,18 @@
       </button>
     </div>
 
+    <!-- Tab 切換 -->
+    <div class="risk-tabs">
+      <button :class="['risk-tab', activeTab==='paper'?'active':'']" @click="activeTab='paper'">
+        📊 模擬交易風控
+      </button>
+      <button :class="['risk-tab', activeTab==='live'?'active':'']" @click="activeTab='live'; fetchLiveRiskSettings()">
+        💰 真實交易風控
+      </button>
+    </div>
+
+    <!-- 模擬交易風控內容 -->
+    <div v-show="activeTab==='paper'">
     <!-- 風控狀態 -->
     <div class="risk-status" :class="riskStatus">
       <div class="status-icon">
@@ -243,6 +255,93 @@
       </div>
     </div>
     </div><!-- end news-settings-row -->
+    </div><!-- end paper tab -->
+
+    <!-- 真實交易風控內容 -->
+    <div v-show="activeTab==='live'" class="live-risk-section">
+      <div class="live-risk-warning">⚠️ 以下設定影響真實資金交易，請謹慎調整</div>
+      
+      <!-- 真實交易風控設定 -->
+      <div class="config-section risk-settings">
+        <h3>💰 真實交易風控設定</h3>
+        <div class="settings-grid">
+          <!-- 最低信心度 -->
+          <div class="setting-item">
+            <label>最低信心度</label>
+            <div class="setting-input">
+              <input type="range" v-model.number="liveRiskSettings.min_confidence" min="0.3" max="0.95" step="0.05" />
+              <input type="number" v-model.number="liveRiskSettings.min_confidence" min="0.3" max="0.95" step="0.05" />
+              <span class="setting-unit">{{ (liveRiskSettings.min_confidence * 100).toFixed(0) }}%</span>
+            </div>
+          </div>
+
+          <!-- 單筆上限 -->
+          <div class="setting-item">
+            <label>單筆上限</label>
+            <div class="setting-input">
+              <input type="range" v-model.number="liveRiskSettings.max_single_amount_pct" min="0.01" max="0.5" step="0.01" />
+              <input type="number" v-model.number="liveRiskSettings.max_single_amount_pct" min="0.01" max="0.5" step="0.01" />
+              <span class="setting-unit">{{ (liveRiskSettings.max_single_amount_pct * 100).toFixed(0) }}%</span>
+            </div>
+          </div>
+
+          <!-- 單股上限 -->
+          <div class="setting-item">
+            <label>單股上限</label>
+            <div class="setting-input">
+              <input type="range" v-model.number="liveRiskSettings.max_position_per_stock_pct" min="0.05" max="0.8" step="0.05" />
+              <input type="number" v-model.number="liveRiskSettings.max_position_per_stock_pct" min="0.05" max="0.8" step="0.05" />
+              <span class="setting-unit">{{ (liveRiskSettings.max_position_per_stock_pct * 100).toFixed(0) }}%</span>
+            </div>
+          </div>
+
+          <!-- 總持倉上限 -->
+          <div class="setting-item">
+            <label>總持倉上限</label>
+            <div class="setting-input">
+              <input type="range" v-model.number="liveRiskSettings.max_total_position_pct" min="0.1" max="1.0" step="0.1" />
+              <input type="number" v-model.number="liveRiskSettings.max_total_position_pct" min="0.1" max="1.0" step="0.1" />
+              <span class="setting-unit">{{ (liveRiskSettings.max_total_position_pct * 100).toFixed(0) }}%</span>
+            </div>
+          </div>
+
+          <!-- 最大持倉股數 -->
+          <div class="setting-item">
+            <label>最大持倉股數</label>
+            <div class="setting-input">
+              <input type="range" v-model.number="liveRiskSettings.max_stocks" min="1" max="30" step="1" />
+              <input type="number" v-model.number="liveRiskSettings.max_stocks" min="1" max="30" step="1" />
+              <span class="setting-unit">檔</span>
+            </div>
+          </div>
+
+          <!-- 止損 -->
+          <div class="setting-item">
+            <label>止損</label>
+            <div class="setting-input">
+              <input type="range" v-model.number="liveRiskSettings.stop_loss_pct" min="0.01" max="0.3" step="0.01" />
+              <input type="number" v-model.number="liveRiskSettings.stop_loss_pct" min="0.01" max="0.3" step="0.01" />
+              <span class="setting-unit">{{ (liveRiskSettings.stop_loss_pct * 100).toFixed(0) }}%</span>
+            </div>
+          </div>
+
+          <!-- 止盈 -->
+          <div class="setting-item">
+            <label>止盈</label>
+            <div class="setting-input">
+              <input type="range" v-model.number="liveRiskSettings.take_profit_pct" min="0.01" max="0.5" step="0.01" />
+              <input type="number" v-model.number="liveRiskSettings.take_profit_pct" min="0.01" max="0.5" step="0.01" />
+              <span class="setting-unit">{{ (liveRiskSettings.take_profit_pct * 100).toFixed(0) }}%</span>
+            </div>
+          </div>
+        </div>
+        <div class="settings-actions">
+          <button class="btn btn-primary live-save-btn" @click="saveLiveRiskSettings" :disabled="savingLive">
+            {{ savingLive ? '儲存中...' : '💾 儲存設定' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -252,6 +351,9 @@ import { useToast } from '@/composables/useToast'
 
 const API_URL = import.meta.env.VITE_API_URL
 const { error, success } = useToast()
+
+// Tab 切換
+const activeTab = ref('paper')
 
 const config = ref({
   max_single_amount: 10000,
@@ -274,6 +376,18 @@ const riskSettings = ref({
 })
 
 const saving = ref(false)
+const savingLive = ref(false)
+
+// 真實交易風控參數設定（預設值更嚴格）
+const liveRiskSettings = ref({
+  min_confidence: 0.75,
+  max_single_amount_pct: 0.08,
+  max_position_per_stock_pct: 0.20,
+  max_total_position_pct: 0.70,
+  max_stocks: 5,
+  stop_loss_pct: 0.03,
+  take_profit_pct: 0.08
+})
 
 const positions = ref([])
 const newsList = ref([])
@@ -465,6 +579,50 @@ const saveRiskSettings = async () => {
   }
 }
 
+// 獲取真實交易風控參數設定
+const fetchLiveRiskSettings = async () => {
+  try {
+    const res = await fetch(`${API_URL}/api/v1/config/risk/live`)
+    const data = await res.json()
+    if (data.config) {
+      liveRiskSettings.value = {
+        min_confidence: data.config.min_confidence ?? 0.75,
+        max_single_amount_pct: data.config.max_single_amount_pct ?? 0.08,
+        max_position_per_stock_pct: data.config.max_position_per_stock_pct ?? 0.20,
+        max_total_position_pct: data.config.max_total_position_pct ?? 0.70,
+        max_stocks: data.config.max_stocks ?? 5,
+        stop_loss_pct: data.config.stop_loss_pct ?? 0.03,
+        take_profit_pct: data.config.take_profit_pct ?? 0.08
+      }
+    }
+  } catch (err) {
+    console.error('Failed to fetch live risk settings:', err)
+  }
+}
+
+// 儲存真實交易風控參數設定
+const saveLiveRiskSettings = async () => {
+  savingLive.value = true
+  try {
+    const res = await fetch(`${API_URL}/api/v1/config/risk/live`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(liveRiskSettings.value)
+    })
+    const data = await res.json()
+    if (data.status === 'ok') {
+      success('真實交易風控參數已更新')
+    } else {
+      error(data.message || '儲存失敗')
+    }
+  } catch (err) {
+    console.error('Failed to save live risk settings:', err)
+    error('儲存失敗')
+  } finally {
+    savingLive.value = false
+  }
+}
+
 onMounted(() => {
   fetchData()
   fetchRiskSettings()
@@ -504,6 +662,63 @@ onMounted(() => {
 .page-title {
   font-size: 1.5rem;
   font-weight: 700;
+}
+
+/* Tab 切換樣式 */
+.risk-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.risk-tab {
+  padding: 6px 16px;
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #8b949e;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.risk-tab:hover {
+  color: #e6edf3;
+}
+
+.risk-tab.active {
+  background: #1f2d40;
+  border-color: #388bfd;
+  color: #388bfd;
+}
+
+.risk-tab:nth-child(2).active {
+  background: #2d1b1b;
+  border-color: #da3633;
+  color: #da3633;
+}
+
+.live-risk-section {
+  animation: fadeIn 0.3s ease;
+}
+
+.live-risk-warning {
+  background: rgba(218,54,51,0.1);
+  border: 1px solid #da3633;
+  color: #f85149;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+
+.live-save-btn {
+  background: #da3633 !important;
+  border-color: #da3633 !important;
+}
+
+.live-save-btn:hover {
+  background: #f85149 !important;
 }
 
 .risk-status {
