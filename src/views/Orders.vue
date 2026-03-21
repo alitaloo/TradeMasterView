@@ -394,7 +394,8 @@ onMounted(() => {
   grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   margin-bottom: 12px;
-  max-height: 150px;
+  height: 160px;
+  overflow: hidden;
 }
 .chart-card {
   background: var(--bg-secondary, #161b22);
@@ -424,6 +425,8 @@ onMounted(() => {
 .page-info { font-size: 12px; color: #8b949e; }
 .orders-page {
   animation: fadeIn 0.3s ease;
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
 }
 
 .page-header {
