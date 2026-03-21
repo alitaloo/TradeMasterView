@@ -28,9 +28,10 @@
     </div>
 
     <!-- Main Content Grid -->
-    <div class="content-grid">
-      <!-- Left: Positions Table (60%) -->
-      <div class="card positions-card">
+    <div class="dashboard-grid">
+      <div class="dashboard-left">
+        <!-- Left: Positions Table -->
+        <div class="card positions-card">
         <div class="card-header">
           <h2 class="card-title">持倉</h2>
           <span class="position-count">{{ positions.length }} 檔</span>
@@ -64,10 +65,11 @@
             </tbody>
           </table>
         </div>
+        </div>
       </div>
 
-      <!-- Right: Market + Signals (40%) -->
-      <div class="right-column">
+      <!-- Right: Market + Signals -->
+      <div class="dashboard-right">
         <!-- Market Indicators -->
         <div class="card market-card">
           <div class="card-header">
@@ -267,20 +269,26 @@ onMounted(() => {
 .stat-card.high .stat-value { color: var(--color-loss); }
 
 /* Content Grid */
-.content-grid {
-  display: grid;
-  grid-template-columns: 60% 40%;
-  gap: var(--space-4);
+.dashboard-grid {
+  display: flex;
+  gap: 12px;
+  align-items: start;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
 }
 
-.right-column {
+.dashboard-left {
+  flex: 2;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  min-height: 0;
+  gap: 10px;
+}
+
+.dashboard-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .card {

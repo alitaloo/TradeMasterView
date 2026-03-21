@@ -457,7 +457,7 @@ onUnmounted(() => {
 .btn-xs { font-size: 11px; padding: 2px 8px; border: 1px solid #30363d; background: transparent; color: #8b949e; border-radius: 4px; cursor: pointer; }
 .btn-xs:hover { color: #e6edf3; border-color: #8b949e; }
 
-.stock-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px; max-height: 400px; overflow-y: auto; }
+.stock-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 8px; max-height: 250px; overflow-y: auto; }
 .stock-item { display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: 4px; cursor: pointer; border: 1px solid transparent; transition: all 0.1s; }
 .stock-item:hover { background: #21262d; border-color: #30363d; }
 .stock-item input { cursor: pointer; accent-color: #388bfd; }

@@ -352,8 +352,8 @@ onMounted(() => {
 .btn-secondary { background: #6b7280; color: white; }
 .btn-sm { padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; background: #3b82f620; color: #3b82f6; margin-right: 4px; }
 .btn-sm.danger { background: #ef444420; color: #ef4444; }
-.summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
-.summary-card { display: flex; align-items: center; gap: 16px; padding: 20px; background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+.summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+.summary-card { display: flex; flex-direction: column; justify-content: space-between; min-height: 80px; align-items: center; gap: 16px; padding: 20px; background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
 .summary-card.clickable { cursor: pointer; transition: background 0.2s; }
 .summary-card.clickable:hover { background: var(--color-bg-tertiary); }
 .edit-hint { font-size: 0.75rem; opacity: 0.5; }

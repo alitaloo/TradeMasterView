@@ -287,8 +287,8 @@ onMounted(() => {
 
 /* Content Grid */
 .content-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   flex: 1;
   min-height: 0;
@@ -325,7 +325,7 @@ onMounted(() => {
 }
 
 .positions-list, .orders-list {
-  flex: 1;
+  flex: none;
   overflow-y: auto;
 }
 
