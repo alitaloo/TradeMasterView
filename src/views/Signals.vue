@@ -10,6 +10,21 @@
       </div>
     </div>
 
+    <!-- 帳戶類型 Tab -->
+    <div class="account-tabs">
+      <button :class="['account-tab', accountType==='paper'?'active':'']" @click="switchAccountType('paper')">
+        📊 模擬交易
+      </button>
+      <button :class="['account-tab', accountType==='live'?'active':'']" @click="switchAccountType('live')">
+        💰 真實交易
+      </button>
+    </div>
+
+    <!-- 真實交易警示 -->
+    <div v-if="accountType==='live'" class="live-signal-banner">
+      ⚠️ 真實交易信號 — 僅顯示信心度 ≥75% 且符合真實風控條件的信號
+    </div>
+
     <!-- 摘要 Badge - 一行排列 -->
     <div class="summary-badges">
       <span class="badge pending">⏳ 待處理: {{ summary.PENDING || 0 }}</span>
@@ -154,6 +169,15 @@ const currentPage = ref(1)
 const pageSize = ref(20)
 const totalCount = ref(0)
 
+// 帳戶類型切換
+const accountType = ref('paper')
+
+const switchAccountType = (type) => {
+  accountType.value = type
+  currentPage.value = 1
+  fetchSignals()
+}
+
 const totalPages = computed(() => Math.ceil(totalCount.value / pageSize.value))
 
 const fetchSignals = async () => {
@@ -163,6 +187,7 @@ const fetchSignals = async () => {
     let url = `${API_URL}/signals?limit=${pageSize.value}&offset=${offset}`
     if (filters.value.status) url += `&status=${filters.value.status}`
     if (filters.value.symbol) url += `&symbol=${filters.value.symbol}`
+    url += `&account_type=${accountType.value}`
     
     const response = await fetch(url)
     const data = await response.json()
@@ -607,5 +632,45 @@ th {
   color: #8b949e;
   font-style: italic;
   align-self: flex-end;
+}
+
+/* 帳戶類型 Tab */
+.account-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.account-tab {
+  padding: 6px 16px;
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #8b949e;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+
+.account-tab.active {
+  background: #1f2d40;
+  border-color: #388bfd;
+  color: #388bfd;
+}
+
+.account-tab:nth-child(2).active {
+  background: #2d1b1b;
+  border-color: #da3633;
+  color: #da3633;
+}
+
+.live-signal-banner {
+  background: rgba(218,54,51,0.1);
+  border: 1px solid #da3633;
+  color: #f85149;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-size: 12px;
 }
 </style>
