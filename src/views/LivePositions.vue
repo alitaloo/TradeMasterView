@@ -116,7 +116,7 @@ const fetchPositions = async () => {
   error.value = null
   
   try {
-    const res = await fetch(`${API_URL}/live/positions`)
+    const res = await fetch(`${API_URL}/live/positions`, { signal: AbortSignal.timeout(8000) })
     const data = await res.json()
     
     if (data.status === 'error') {
