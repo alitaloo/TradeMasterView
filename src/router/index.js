@@ -72,6 +72,25 @@ const routes = [
     name: 'PaperTrading',
     component: () => import('../views/PaperTrading.vue'),
     meta: { title: '模擬交易', icon: 'paper' }
+  },
+  // 真實交易頁面
+  {
+    path: '/live/positions',
+    name: 'LivePositions',
+    component: () => import('../views/LivePositions.vue'),
+    meta: { title: '真實持倉', icon: 'live' }
+  },
+  {
+    path: '/live/orders',
+    name: 'LiveOrders',
+    component: () => import('../views/LiveOrders.vue'),
+    meta: { title: '真實訂單', icon: 'live' }
+  },
+  {
+    path: '/live/signals',
+    name: 'LiveSignals',
+    component: () => import('../views/LiveSignals.vue'),
+    meta: { title: '真實交易信號', icon: 'live' }
   }
 ]
 

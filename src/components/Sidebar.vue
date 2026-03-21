@@ -5,16 +5,143 @@
     </div>
     
     <nav class="nav-menu">
+      <!-- 儀表板 -->
       <router-link 
-        v-for="item in menuItems" 
-        :key="item.path"
-        :to="item.path"
+        to="/"
         class="nav-item"
-        :class="{ active: $route.path === item.path }"
+        :class="{ active: $route.path === '/' }"
       >
-        <span class="nav-icon">{{ item.icon }}</span>
-        <span class="nav-text">{{ item.label }}</span>
-        <span v-if="item.badge" class="nav-badge">{{ item.badge }}</span>
+        <span class="nav-icon">📊</span>
+        <span class="nav-text">儀表板</span>
+      </router-link>
+
+      <!-- 模擬交易 分組 -->
+      <div class="nav-group">
+        <div class="nav-group-title">📊 模擬交易</div>
+        <router-link 
+          to="/signals"
+          class="nav-item"
+          :class="{ active: $route.path === '/signals' }"
+        >
+          <span class="nav-icon">📈</span>
+          <span class="nav-text">信號</span>
+        </router-link>
+        <router-link 
+          to="/positions"
+          class="nav-item"
+          :class="{ active: $route.path === '/positions' }"
+        >
+          <span class="nav-icon">💼</span>
+          <span class="nav-text">持倉</span>
+        </router-link>
+        <router-link 
+          to="/orders"
+          class="nav-item"
+          :class="{ active: $route.path === '/orders' }"
+        >
+          <span class="nav-icon">📋</span>
+          <span class="nav-text">訂單</span>
+        </router-link>
+        <router-link 
+          to="/paper-trading"
+          class="nav-item"
+          :class="{ active: $route.path === '/paper-trading' }"
+        >
+          <span class="nav-icon">📈</span>
+          <span class="nav-text">總覽</span>
+        </router-link>
+      </div>
+
+      <!-- 真實交易 分組 -->
+      <div class="nav-group">
+        <div class="nav-group-title live-title">
+          💰 真實交易
+          <span :class="['live-badge', liveEnabled ? 'on' : 'off']">
+            {{ liveEnabled ? '🟢 啟用' : '🔴 停用' }}
+          </span>
+        </div>
+        <router-link 
+          to="/live/positions"
+          class="nav-item"
+          :class="{ active: $route.path === '/live/positions', disabled: !liveEnabled }"
+        >
+          <span class="nav-icon">💼</span>
+          <span class="nav-text">持倉</span>
+        </router-link>
+        <router-link 
+          to="/live/orders"
+          class="nav-item"
+          :class="{ active: $route.path === '/live/orders', disabled: !liveEnabled }"
+        >
+          <span class="nav-icon">📋</span>
+          <span class="nav-text">訂單</span>
+        </router-link>
+        <router-link 
+          to="/live/signals"
+          class="nav-item"
+          :class="{ active: $route.path === '/live/signals', disabled: !liveEnabled }"
+        >
+          <span class="nav-icon">📈</span>
+          <span class="nav-text">信號</span>
+        </router-link>
+      </div>
+
+      <!-- 其他菜單 -->
+      <router-link 
+        to="/risk"
+        class="nav-item"
+        :class="{ active: $route.path === '/risk' }"
+      >
+        <span class="nav-icon">🛡️</span>
+        <span class="nav-text">風控儀表板</span>
+      </router-link>
+      <router-link 
+        to="/backtests"
+        class="nav-item"
+        :class="{ active: $route.path === '/backtests' }"
+      >
+        <span class="nav-icon">📉</span>
+        <span class="nav-text">回測結果</span>
+      </router-link>
+      <router-link 
+        to="/backtest-runner"
+        class="nav-item"
+        :class="{ active: $route.path === '/backtest-runner' }"
+      >
+        <span class="nav-icon">⚡</span>
+        <span class="nav-text">執行回測</span>
+      </router-link>
+      <router-link 
+        to="/strategies"
+        class="nav-item"
+        :class="{ active: $route.path === '/strategies' }"
+      >
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-text">策略管理</span>
+      </router-link>
+      <router-link 
+        to="/stock-strategies"
+        class="nav-item"
+        :class="{ active: $route.path === '/stock-strategies' }"
+      >
+        <span class="nav-icon">🎯</span>
+        <span class="nav-text">股票策略</span>
+      </router-link>
+      <router-link 
+        to="/stocks"
+        class="nav-item"
+        :class="{ active: $route.path === '/stocks' }"
+      >
+        <span class="nav-icon">📋</span>
+        <span class="nav-text">股票清單</span>
+      </router-link>
+      <router-link 
+        to="/realtime"
+        class="nav-item"
+        :class="{ active: $route.path === '/realtime' }"
+      >
+        <span class="nav-icon">📺</span>
+        <span class="nav-text">K線監控</span>
       </router-link>
     </nav>
     
@@ -28,23 +155,25 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { getUSMarketStatus } from '../utils/datetime.js'
 
-const menuItems = [
-  { path: '/', label: '儀表板', icon: '📊' },
-  { path: '/signals', label: '交易信號', icon: '📈' },
-  { path: '/positions', label: '持倉管理', icon: '💼' },
-  { path: '/orders', label: '訂單管理', icon: '📋' },
-  { path: '/risk', label: '風控儀表板', icon: '🛡️' },
-  { path: '/backtests', label: '回測結果', icon: '📉' },
-  { path: '/backtest-runner', label: '執行回測', icon: '⚡' },
-  { path: '/strategies', label: '策略管理', icon: '⚙️' },
-  { path: '/stock-strategies', label: '股票策略', icon: '🎯' },
-  { path: '/stocks', label: '股票清單', icon: '📋' },
-  { path: '/realtime', label: 'K線監控', icon: '📺' },
-  { path: '/paper-trading', label: '模擬交易', icon: '📈' }
-]
+const API_URL = import.meta.env.VITE_API_URL
+
+// 真實交易開關狀態
+const liveEnabled = ref(false)
+
+// 獲取交易模式
+const fetchTradingMode = async () => {
+  try {
+    const res = await fetch(`${API_URL}/config/trading/mode`)
+    const data = await res.json()
+    liveEnabled.value = data.live_enabled || false
+  } catch (err) {
+    console.error('Fetch trading mode error:', err)
+    liveEnabled.value = false
+  }
+}
 
 // 使用统一的 datetime 工具，正确处理 DST 与周末
 const marketStatus = computed(() => getUSMarketStatus())
@@ -59,6 +188,10 @@ const connectionStatus = computed(() => {
 const connectionLabel = computed(() => {
   const status = marketStatus.value
   return status.text
+})
+
+onMounted(() => {
+  fetchTradingMode()
 })
 </script>
 
@@ -94,6 +227,42 @@ const connectionLabel = computed(() => {
   overflow-y: auto;
 }
 
+.nav-group {
+  margin-bottom: 8px;
+}
+
+.nav-group-title {
+  font-size: 10px;
+  color: #6e7681;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 8px 16px 4px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.live-title {
+  color: #da3633;
+}
+
+.live-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.live-badge.on {
+  background: rgba(63, 185, 80, 0.2);
+  color: #3fb950;
+}
+
+.live-badge.off {
+  background: rgba(218, 54, 51, 0.2);
+  color: #da3633;
+}
+
 .nav-item {
   display: flex;
   align-items: center;
@@ -116,6 +285,11 @@ const connectionLabel = computed(() => {
   background: rgba(56, 139, 253, 0.1);
   color: var(--color-accent);
   border-left-color: var(--color-accent);
+}
+
+.nav-item.disabled {
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 .nav-icon {
