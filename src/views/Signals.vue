@@ -44,24 +44,79 @@
             <th>信心度</th>
             <th>狀態</th>
             <th>時間</th>
+            <th>詳情</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="signal in signals" :key="signal.id">
-            <td class="symbol">{{ signal.symbol }}</td>
-            <td>{{ signal.strategy_type || '-' }}</td>
-            <td>
-              <span :class="['signal-type', signal.signal_type]">
-                {{ signal.signal_type }}
-              </span>
-            </td>
-            <td class="number">{{ signal.price || '-' }}</td>
-            <td class="number">{{ (signal.confidence * 100).toFixed(0) || 0 }}%</td>
-            <td>
-              <span :class="['status', signal.status]">{{ signal.status }}</span>
-            </td>
-            <td class="time">{{ formatTime(signal.created_at) }}</td>
-          </tr>
+          <template v-for="signal in signals" :key="signal.id">
+            <tr>
+              <td class="symbol">{{ signal.symbol }}</td>
+              <td>{{ signal.strategy_type || '-' }}</td>
+              <td>
+                <span :class="['signal-type', signal.signal_type]">
+                  {{ signal.signal_type }}
+                </span>
+              </td>
+              <td class="number">{{ signal.price || '-' }}</td>
+              <td class="number">{{ (signal.confidence * 100).toFixed(0) || 0 }}%</td>
+              <td>
+                <span :class="['status', signal.status]">{{ signal.status }}</span>
+              </td>
+              <td class="time">{{ formatTime(signal.created_at) }}</td>
+              <td>
+                <button class="btn-detail" @click="signal._expanded = !signal._expanded">
+                  📊 {{ signal._expanded ? '▲' : '▼' }}
+                </button>
+              </td>
+            </tr>
+            <!-- 詳情展開面板 -->
+            <tr v-if="signal._expanded" class="detail-row">
+              <td colspan="99" class="detail-cell">
+                <div class="signal-detail">
+                  <!-- 多時間框架 -->
+                  <div class="detail-section">
+                    <div class="detail-label">多時間框架共識</div>
+                    <div class="tf-badges">
+                      <template v-for="(val, tf) in (signal._meta?.tf_signals || {})" :key="tf">
+                        <span v-if="tf !== 'consensus' && tf !== 'method'" :class="['tf-badge', val?.toLowerCase()]">
+                          {{ tf }}: {{ val }}
+                        </span>
+                      </template>
+                      <span class="tf-arrow">→</span>
+                      <span :class="['consensus-badge', (signal._meta?.tf_signals?.consensus || '').toLowerCase()]">
+                        共識: {{ signal._meta?.tf_signals?.consensus || '-' }}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <!-- 信心度組成 -->
+                  <div class="detail-section" v-if="signal._meta?.confidence_components?.length">
+                    <div class="detail-label">信心度組成</div>
+                    <div class="comp-list">
+                      <span v-for="comp in signal._meta.confidence_components" :key="comp"
+                        :class="['comp-item', comp.includes('aligned') || comp.includes('consensus') ? 'positive' : 'neutral']">
+                        {{ comp.includes('aligned') || comp.includes('consensus') ? '✅' : '⚠️' }} {{ comp }}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <!-- 市場環境 -->
+                  <div class="detail-section">
+                    <div class="detail-label">市場環境</div>
+                    <span class="env-badge">{{ signal._meta?.market_ok ? '✅ 市場正常' : '⚠️ 市場異常' }}</span>
+                    <span class="env-badge">{{ signal._meta?.news_ok ? '✅ 新聞正面' : '⚠️ 新聞負面' }}</span>
+                    <span v-if="signal._meta?.['1h_trend']" class="env-badge">1h: {{ signal._meta['1h_trend'] }}</span>
+                    <span v-if="signal._meta?.['1d_trend']" class="env-badge">1d: {{ signal._meta['1d_trend'] }}</span>
+                  </div>
+                  
+                  <!-- 原因 -->
+                  <div class="detail-reason" v-if="signal._meta?.reason">
+                    💬 {{ signal._meta.reason }}
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </template>
         </tbody>
       </table>
     </div>
@@ -113,7 +168,11 @@ const fetchSignals = async () => {
     const data = await response.json()
     
     if (data.status === 'ok') {
-      signals.value = data.signals || []
+      signals.value = (data.signals || []).map(s => ({
+        ...s,
+        _meta: (() => { try { return JSON.parse(s.metadata || '{}') } catch { return {} } })(),
+        _expanded: false
+      }))
       totalCount.value = data.count || 0
       signalsTimestamp.value = data.data_timestamp || null
     }
@@ -413,5 +472,140 @@ th {
   .summary-cards {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* 詳情面板樣式 */
+.btn-detail {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #8b949e;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.btn-detail:hover {
+  color: #388bfd;
+  border-color: #388bfd;
+}
+
+.detail-row {
+  background: #0d1117;
+}
+
+.detail-cell {
+  padding: 12px 16px !important;
+}
+
+.signal-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-label {
+  font-size: 11px;
+  color: #6e7681;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tf-badges {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tf-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tf-badge.buy {
+  background: rgba(63,185,80,0.15);
+  color: #3fb950;
+}
+
+.tf-badge.sell {
+  background: rgba(248,81,73,0.15);
+  color: #f85149;
+}
+
+.tf-badge.hold {
+  background: rgba(110,118,129,0.15);
+  color: #8b949e;
+}
+
+.consensus-badge {
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.consensus-badge.buy {
+  background: #3fb950;
+  color: #0d1117;
+}
+
+.consensus-badge.sell {
+  background: #f85149;
+  color: #fff;
+}
+
+.consensus-badge.hold {
+  background: #6e7681;
+  color: #fff;
+}
+
+.tf-arrow {
+  color: #6e7681;
+  font-size: 14px;
+}
+
+.comp-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.comp-item {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.comp-item.positive {
+  background: rgba(63,185,80,0.1);
+  color: #3fb950;
+}
+
+.comp-item.neutral {
+  background: rgba(210,153,34,0.1);
+  color: #d29922;
+}
+
+.env-badge {
+  font-size: 12px;
+  padding: 2px 8px;
+  background: #21262d;
+  border-radius: 4px;
+}
+
+.detail-reason {
+  font-size: 12px;
+  color: #8b949e;
+  font-style: italic;
+  align-self: flex-end;
 }
 </style>
