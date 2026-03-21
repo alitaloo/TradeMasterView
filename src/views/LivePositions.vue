@@ -89,19 +89,22 @@ const API_URL = import.meta.env.VITE_API_URL
 
 const liveEnabled = ref(false)
 const positions = ref([])
-const loading = ref(true)
+const loading = ref(false)
 const error = ref(null)
 const showEnableModal = ref(false)
 const confirmCode = ref('')
 
 const fetchTradingMode = async () => {
   try {
-    const res = await fetch(`${API_URL}/config/trading/mode`)
+    const res = await fetch(`${API_URL}/config/trading/mode`, { signal: AbortSignal.timeout(5000) })
     const data = await res.json()
     liveEnabled.value = data.live_enabled || false
   } catch (err) {
     console.error('Fetch trading mode error:', err)
     liveEnabled.value = false
+  } finally {
+    // 確保 loading 一定會結束
+    if (!liveEnabled.value) loading.value = false
   }
 }
 
