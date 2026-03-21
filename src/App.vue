@@ -23,10 +23,12 @@ import ToastContainer from './components/ToastContainer.vue'
 
 <style scoped>
 .app-container {
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
+  overflow: hidden;
 }
 
 .app-content {
